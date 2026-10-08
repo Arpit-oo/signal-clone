@@ -146,13 +146,13 @@
 }
 .site-hero-copy {
   padding-top: 120px;
-  padding-right: 24px;
+  padding-right: 12px;
 }
 .site-hero-copy h1 {
   margin-bottom: 24px;
 }
 .site-hero-copy p {
-  max-width: 514px;
+  max-width: none;
 }
 .site-button {
   display: inline-flex;
@@ -160,10 +160,24 @@
   justify-content: center;
   min-height: 50px;
   padding: 0 20px;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 20px;
   line-height: 28px;
   font-weight: 600;
+  font-family:
+    BlinkMacSystemFont,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    "Fira Sans",
+    "Droid Sans",
+    "Helvetica Neue",
+    Helvetica,
+    Arial,
+    sans-serif;
   transition: background-color 0.15s;
 }
 .site-button-white {
@@ -177,6 +191,7 @@
 .site-button-outline {
   color: #2c6bed;
   border: 2px solid #2c6bed;
+  padding: 0 19px;
   margin-top: 28px;
 }
 .site-button-outline:hover {
