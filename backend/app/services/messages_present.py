@@ -15,6 +15,7 @@ from app.schemas.message import (
     ReactionOut,
     ReplyPreview,
 )
+from app.services.visibility import visible_messages
 
 MESSAGE_LOAD_OPTIONS = (
     selectinload(Message.attachments),
@@ -46,7 +47,9 @@ def _reply_preview(msg: Message | None) -> ReplyPreview | None:
     )
 
 
-def present_message(msg: Message, status: MessageStatus | None = None) -> MessageOut:
+def present_message(
+    msg: Message, status: MessageStatus | None = None, *, reply_visible: bool = True
+) -> MessageOut:
     deleted = msg.deleted_at is not None
     return MessageOut(
         id=msg.id,
@@ -56,7 +59,7 @@ def present_message(msg: Message, status: MessageStatus | None = None) -> Messag
         type=msg.type,
         body="" if deleted else msg.body,
         meta=msg.meta,
-        reply_to=None if deleted else _reply_preview(msg.reply_to),
+        reply_to=None if deleted or not reply_visible else _reply_preview(msg.reply_to),
         is_forwarded=msg.is_forwarded,
         created_at=msg.created_at,
         edited_at=msg.edited_at,
@@ -118,7 +121,22 @@ async def present_messages(
 ) -> list[MessageOut]:
     own = [m.id for m in messages if m.sender_id == viewer.id and m.type == "text"]
     statuses = await statuses_for(db, viewer, own)
-    return [present_message(m, statuses.get(m.id)) for m in messages]
+    replies = {m.reply_to_id for m in messages if m.reply_to_id is not None}
+    visible_replies = (
+        set(
+            await db.scalars(
+                visible_messages(viewer.id)
+                .where(Message.id.in_(replies))
+                .with_only_columns(Message.id)
+            )
+        )
+        if replies
+        else set()
+    )
+    return [
+        present_message(m, statuses.get(m.id), reply_visible=m.reply_to_id in visible_replies)
+        for m in messages
+    ]
 
 
 async def load_messages(db: AsyncSession, ids: Sequence[int]) -> list[Message]:

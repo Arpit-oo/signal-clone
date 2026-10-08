@@ -122,7 +122,16 @@ async def get_or_create_direct(
     db: AsyncSession, me: User, other_id: int
 ) -> tuple[Conversation, bool]:
     if other_id == me.id:
-        return await get_or_create_note_to_self(db, me), False
+        conv = await get_or_create_note_to_self(db, me)
+        await db.execute(
+            update(ConversationMember)
+            .where(
+                ConversationMember.conversation_id == conv.id, ConversationMember.user_id == me.id
+            )
+            .values(is_hidden=False)
+        )
+        await db.commit()
+        return conv, False
     other = await db.get(User, other_id)
     if other is None:
         raise not_found("User")
@@ -498,6 +507,8 @@ async def add_members(
     }
     wanted = set(user_ids) - {me.id}
     valid = set(await db.scalars(select(User.id).where(User.id.in_(wanted))))
+    if missing := wanted - valid:
+        raise bad_request(f"Unknown users: {sorted(missing)}")
     added: list[int] = []
     now = utcnow()
     for uid in sorted(valid):

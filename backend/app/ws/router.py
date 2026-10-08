@@ -81,6 +81,8 @@ async def _handle(ws: WebSocket, user_id: int, type_: str, data: Any) -> None:
             member = await db.get(ConversationMember, (conversation_id, me.id))
             if member is None or member.left_at is not None:
                 return
+            member = await conv_svc.get_membership(db, conversation_id, me.id)
+            await msg_svc.check_can_send(db, me, member.conversation)
             if type_ == "typing.start" and me.typing_indicators_enabled:
                 if typing_registry.start(conversation_id, me.id):
                     await broadcast_typing(conversation_id, me.id, True)
@@ -123,10 +125,16 @@ async def websocket_endpoint(ws: WebSocket, token: str = "") -> None:
             await msg_svc.mark_delivered(db, me)
 
         while True:
-            frame = await ws.receive_json()
-            type_ = frame.get("type") if isinstance(frame, dict) else None
-            data = (frame.get("data") or {}) if isinstance(frame, dict) else {}
+            type_ = None
+            data = {}
             try:
+                frame = await ws.receive_json()
+                if not isinstance(frame, dict):
+                    raise ValueError("A WebSocket frame must be an object")
+                type_ = frame.get("type")
+                data = frame.get("data") or {}
+                if not isinstance(data, dict):
+                    raise ValueError("Event data must be an object")
                 await _handle(ws, user_id, type_, data)
             except HTTPException as exc:
                 await ws.send_json(

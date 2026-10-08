@@ -1,13 +1,15 @@
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy.engine import make_url
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", extra="ignore")
 
     app_name: str = "Signal Clone API"
     database_url: str = f"sqlite+aiosqlite:///{(BASE_DIR / 'data' / 'signal.db').as_posix()}"
@@ -30,7 +32,27 @@ class Settings(BaseSettings):
     typing_ttl_seconds: int = 6
     expiry_sweep_seconds: float = 2.0
 
+    auto_migrate_on_startup: bool = True
     seed_on_startup: bool = False
+
+    @field_validator("database_url")
+    @classmethod
+    def _database_path(cls, value: str) -> str:
+        url = make_url(value)
+        if (
+            url.get_backend_name() == "sqlite"
+            and url.database
+            and url.database != ":memory:"
+            and not Path(url.database).is_absolute()
+        ):
+            url = url.set(database=(BASE_DIR / url.database).resolve().as_posix())
+            return url.render_as_string(hide_password=False)
+        return value
+
+    @field_validator("upload_dir")
+    @classmethod
+    def _upload_path(cls, value: Path) -> Path:
+        return value if value.is_absolute() else (BASE_DIR / value).resolve()
 
 
 @lru_cache

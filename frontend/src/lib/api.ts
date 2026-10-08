@@ -12,6 +12,7 @@ import type {
 } from "./types";
 
 const TOKEN_KEY = "signal-token";
+let memoryToken: string | null = null;
 
 export class ApiError extends Error {
   constructor(
@@ -25,13 +26,14 @@ export class ApiError extends Error {
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
   try {
-    return localStorage.getItem(TOKEN_KEY);
+    return memoryToken ?? localStorage.getItem(TOKEN_KEY);
   } catch {
-    return null;
+    return memoryToken;
   }
 }
 
 export function setToken(token: string | null) {
+  memoryToken = token;
   try {
     if (token) localStorage.setItem(TOKEN_KEY, token);
     else localStorage.removeItem(TOKEN_KEY);

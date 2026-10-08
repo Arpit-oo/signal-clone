@@ -84,7 +84,7 @@ class ForwardRequest(BaseModel):
 
 
 class ReadRequest(BaseModel):
-    up_to_id: int
+    up_to_id: int = Field(ge=1)
 
 
 class RecipientStatus(BaseModel):

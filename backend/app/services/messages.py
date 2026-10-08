@@ -3,6 +3,7 @@ from collections import defaultdict
 from datetime import timedelta
 
 from sqlalchemy import delete, func, or_, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
@@ -24,6 +25,7 @@ from app.schemas.message import (
     MessageOut,
     MessagePage,
     MessageSend,
+    MessageStatus,
     ReactionOut,
     RecipientStatus,
 )
@@ -38,7 +40,7 @@ from app.services.messages_present import (
     present_messages,
     statuses_for,
 )
-from app.services.visibility import visible_messages
+from app.services.visibility import visible_messages, visible_to, visible_viewers
 from app.ws.manager import manager
 
 settings = get_settings()
@@ -64,13 +66,15 @@ async def list_messages(
         return list((await db.scalars(query.options(*MESSAGE_LOAD_OPTIONS).limit(n))).all())
 
     if around is not None:
-        older = await fetch(
-            base.where(Message.id <= around).order_by(Message.id.desc()), limit // 2 + 1
-        )
-        newer = await fetch(base.where(Message.id > around).order_by(Message.id), limit // 2 + 1)
-        has_before = len(older) > limit // 2
-        has_after = len(newer) > limit // 2
-        rows = list(reversed(older[: limit // 2])) + newer[: limit // 2]
+        older = await fetch(base.where(Message.id <= around).order_by(Message.id.desc()), limit + 1)
+        newer = await fetch(base.where(Message.id > around).order_by(Message.id), limit + 1)
+        older_count = min(len(older), (limit + 1) // 2)
+        newer_count = min(len(newer), limit - older_count)
+        # Fill the window from the other side when the anchor is near either end.
+        older_count = min(len(older), limit - newer_count)
+        has_before = len(older) > older_count
+        has_after = len(newer) > newer_count
+        rows = list(reversed(older[:older_count])) + newer[:newer_count]
     elif after is not None:
         newer = await fetch(base.where(Message.id > after).order_by(Message.id), limit + 1)
         has_after = len(newer) > limit
@@ -109,7 +113,7 @@ async def search_messages(
     query = visible_messages(viewer.id).where(
         Message.type == "text",
         Message.deleted_at.is_(None),
-        Message.body.ilike(f"%{q}%"),
+        Message.body.icontains(q, autoescape=True),
     )
     if conversation_id is not None:
         query = query.where(Message.conversation_id == conversation_id)
@@ -148,18 +152,35 @@ async def message_info(db: AsyncSession, viewer: User, message_id: int) -> Messa
         )
         for r, receipts_on in rows
     ]
-    status = (await statuses_for(db, viewer, [msg.id])).get(msg.id)
-    return MessageInfo(message=present_message(msg, status), recipients=recipients)
+    return MessageInfo(
+        message=(await present_messages(db, viewer, [msg]))[0], recipients=recipients
+    )
 
 
 # --- sending -------------------------------------------------------------------------------
 
 
-async def _check_can_send(db: AsyncSession, sender: User, conv: Conversation) -> None:
+async def check_can_send(db: AsyncSession, sender: User, conv: Conversation) -> None:
     if conv.type == "direct":
         others = [uid for uid in await conv_svc.active_member_ids(db, conv.id) if uid != sender.id]
         if others and await users_svc.is_blocked_between(db, sender.id, others[0]):
             raise forbidden("You can't message this person")
+
+
+async def _retry_message(
+    db: AsyncSession, sender_id: int, conversation_id: int, client_id: str
+) -> Message | None:
+    existing = await db.scalar(select(Message).where(Message.client_id == client_id))
+    if existing is None:
+        return None
+    if existing.sender_id != sender_id or existing.conversation_id != conversation_id:
+        raise bad_request("Duplicate client id")
+    visible = await db.scalar(
+        visible_messages(sender_id).where(Message.id == existing.id).with_only_columns(Message.id)
+    )
+    if visible is None:
+        raise not_found("Message")
+    return existing
 
 
 async def create_message(
@@ -171,15 +192,14 @@ async def create_message(
     is_forwarded: bool = False,
 ) -> tuple[Message, bool]:
     """Persist a message. Returns (message, created); resends with a known client_id are no-ops."""
-    existing = await db.scalar(select(Message).where(Message.client_id == data.client_id))
+    sender_id = sender.id
+    existing = await _retry_message(db, sender_id, conversation_id, data.client_id)
     if existing is not None:
-        if existing.sender_id != sender.id:
-            raise bad_request("Duplicate client id")
         return existing, False
 
     member = await conv_svc.get_membership(db, conversation_id, sender.id)
     conv = member.conversation
-    await _check_can_send(db, sender, conv)
+    await check_can_send(db, sender, conv)
 
     body = data.body.strip()
     attachments: list[Attachment] = []
@@ -194,13 +214,18 @@ async def create_message(
             )
         )
         if len(attachments) != len(set(data.attachment_ids)):
+            existing = await _retry_message(db, sender_id, conversation_id, data.client_id)
+            if existing is not None:
+                return existing, False
             raise bad_request("Some attachments are missing or already sent")
     if not body and not attachments:
         raise bad_request("Message is empty")
 
     if data.reply_to_id is not None:
         reply_conv = await db.scalar(
-            select(Message.conversation_id).where(Message.id == data.reply_to_id)
+            visible_messages(sender.id)
+            .where(Message.id == data.reply_to_id)
+            .with_only_columns(Message.conversation_id)
         )
         if reply_conv != conversation_id:
             raise bad_request("Can only reply to messages in the same chat")
@@ -227,10 +252,32 @@ async def create_message(
         ),
     )
     db.add(msg)
-    await db.flush()
+    try:
+        await db.flush()
+    except IntegrityError:
+        # Another tab can persist the same client ID after our initial lookup. Resolve the
+        # unique constraint race to the same acknowledgement as a later retry.
+        await db.rollback()
+        existing = await _retry_message(db, sender_id, conversation_id, data.client_id)
+        if existing is None:
+            raise
+        await db.refresh(sender)
+        return existing, False
 
-    for att in attachments:
-        att.message_id = msg.id
+    if attachments:
+        claimed = await db.execute(
+            update(Attachment)
+            .where(
+                Attachment.id.in_([att.id for att in attachments]),
+                Attachment.uploader_id == sender_id,
+                Attachment.message_id.is_(None),
+            )
+            .values(message_id=msg.id)
+            .execution_options(synchronize_session=False)
+        )
+        if claimed.rowcount != len(attachments):
+            await db.rollback()
+            raise bad_request("Some attachments are missing or already sent")
     db.add_all(MessageReceipt(message_id=msg.id, user_id=uid) for uid in recipients)
     mention_ids = set(data.mentions) & set(recipients)
     db.add_all(MessageMention(message_id=msg.id, user_id=uid) for uid in mention_ids)
@@ -267,16 +314,42 @@ async def broadcast_new_message(db: AsyncSession, msg: Message) -> MessageOut:
     loaded = await load_message(db, msg.id)
     assert loaded is not None
     member_ids = await conv_svc.active_member_ids(db, msg.conversation_id)
-    recipient_view = present_message(loaded).model_dump(mode="json")
-    await manager.send_to_users(
-        [u for u in member_ids if u != msg.sender_id], "message.new", recipient_view
-    )
-    sender_view = present_message(loaded, "sent")
-    if msg.sender_id is not None:
-        await manager.send_to_user(
-            msg.sender_id, "message.new", sender_view.model_dump(mode="json")
-        )
+    await _broadcast_visible_message(db, loaded, member_ids, "message.new", "sent")
+    sender = await db.get(User, msg.sender_id)
+    sender_view = (await present_messages(db, sender, [loaded]))[0]
+    sender_view.status = "sent"
     return sender_view
+
+
+async def _broadcast_visible_message(
+    db: AsyncSession,
+    msg: Message,
+    member_ids: list[int],
+    event: str,
+    sender_status: MessageStatus | None,
+) -> None:
+    viewers = await visible_viewers(db, msg.id, member_ids)
+    reply_viewers = (
+        await visible_viewers(db, msg.reply_to_id, member_ids) if msg.reply_to_id else set()
+    )
+    for show_reply in (False, True):
+        recipients = [
+            uid for uid in viewers if uid != msg.sender_id and (uid in reply_viewers) == show_reply
+        ]
+        if recipients:
+            await manager.send_to_users(
+                recipients,
+                event,
+                present_message(msg, reply_visible=show_reply).model_dump(mode="json"),
+            )
+    if msg.sender_id is not None and msg.sender_id in viewers:
+        await manager.send_to_user(
+            msg.sender_id,
+            event,
+            present_message(
+                msg, sender_status, reply_visible=msg.sender_id in reply_viewers
+            ).model_dump(mode="json"),
+        )
 
 
 async def forward_message(
@@ -285,8 +358,14 @@ async def forward_message(
     source = await get_visible_message(db, me, message_id)
     if source.deleted_at or source.type != "text":
         raise bad_request("This message can't be forwarded")
+    destinations = list(dict.fromkeys(conversation_ids))
+    # Validate all targets before creating anything, so an inaccessible target cannot leave
+    # earlier chats with partially forwarded messages and no WebSocket notification.
+    for conv_id in destinations:
+        member = await conv_svc.get_membership(db, conv_id, me.id)
+        await check_can_send(db, me, member.conversation)
     created: list[Message] = []
-    for conv_id in dict.fromkeys(conversation_ids):
+    for conv_id in destinations:
         copies = [
             Attachment(
                 uploader_id=me.id,
@@ -380,13 +459,7 @@ async def broadcast_message_update(db: AsyncSession, message_id: int) -> None:
     member_ids = await conv_svc.active_member_ids(db, msg.conversation_id)
     sender = await db.get(User, msg.sender_id) if msg.sender_id else None
     status = (await statuses_for(db, sender, [msg.id])).get(msg.id) if sender else None
-    others = present_message(msg).model_dump(mode="json")
-    await manager.send_to_users(
-        [u for u in member_ids if u != msg.sender_id], "message.updated", others
-    )
-    if msg.sender_id in member_ids:
-        mine = present_message(msg, status).model_dump(mode="json")
-        await manager.send_to_user(msg.sender_id, "message.updated", mine)
+    await _broadcast_visible_message(db, msg, member_ids, "message.updated", status)
 
 
 # --- reactions -----------------------------------------------------------------------------
@@ -420,7 +493,11 @@ async def broadcast_reactions(db: AsyncSession, message_id: int, conversation_id
         "reactions": [ReactionOut(user_id=r.user_id, emoji=r.emoji).model_dump() for r in rows],
     }
     await manager.send_to_users(
-        await conv_svc.active_member_ids(db, conversation_id), "reaction.updated", payload
+        await visible_viewers(
+            db, message_id, await conv_svc.active_member_ids(db, conversation_id)
+        ),
+        "reaction.updated",
+        payload,
     )
 
 
@@ -455,8 +532,15 @@ async def _notify_senders(db: AsyncSession, message_ids: set[int]) -> None:
 
 async def mark_delivered(db: AsyncSession, me: User, message_ids: list[int] | None = None) -> None:
     """Mark messages delivered to `me`. With no ids, flush everything pending (on connect)."""
-    query = select(MessageReceipt.message_id).where(
-        MessageReceipt.user_id == me.id, MessageReceipt.delivered_at.is_(None)
+    query = (
+        select(MessageReceipt.message_id)
+        .join(Message, Message.id == MessageReceipt.message_id)
+        .join(ConversationMember, ConversationMember.conversation_id == Message.conversation_id)
+        .where(
+            MessageReceipt.user_id == me.id,
+            MessageReceipt.delivered_at.is_(None),
+            *visible_to(me.id),
+        )
     )
     if message_ids is not None:
         query = query.where(MessageReceipt.message_id.in_(message_ids))
@@ -474,6 +558,15 @@ async def mark_delivered(db: AsyncSession, me: User, message_ids: list[int] | No
 
 async def mark_read(db: AsyncSession, me: User, conversation_id: int, up_to_id: int) -> None:
     member = await conv_svc.get_membership(db, conversation_id, me.id, require_active=False)
+    # The cursor must identify a visible message in this chat. A future or foreign ID would
+    # otherwise mark later arrivals as already read indefinitely.
+    target = await db.scalar(
+        visible_messages(me.id)
+        .where(Message.conversation_id == conversation_id, Message.id == up_to_id)
+        .with_only_columns(Message.id)
+    )
+    if target is None:
+        raise not_found("Message")
     now = utcnow()
     if member.last_read_message_id is None or up_to_id > member.last_read_message_id:
         member.last_read_message_id = up_to_id
@@ -483,11 +576,13 @@ async def mark_read(db: AsyncSession, me: User, conversation_id: int, up_to_id: 
         await db.scalars(
             select(MessageReceipt.message_id)
             .join(Message, Message.id == MessageReceipt.message_id)
+            .join(ConversationMember, ConversationMember.conversation_id == Message.conversation_id)
             .where(
                 MessageReceipt.user_id == me.id,
                 MessageReceipt.read_at.is_(None),
                 Message.conversation_id == conversation_id,
                 Message.id <= up_to_id,
+                *visible_to(me.id),
             )
         )
     )
@@ -529,8 +624,9 @@ async def mark_read(db: AsyncSession, me: User, conversation_id: int, up_to_id: 
                 "message.timer_started",
                 timed_payload,
             )
-        if me.read_receipts_enabled:
-            await _notify_senders(db, set(pending))
+        # Reading still establishes delivery when read receipts are disabled. The aggregate
+        # status serializer enforces the mutual read-receipt preference.
+        await _notify_senders(db, set(pending))
 
 
 # --- disappearing messages -----------------------------------------------------------------

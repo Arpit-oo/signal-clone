@@ -11,6 +11,7 @@ backend/uploads/
 # Node
 node_modules/
 .next/
+.next-e2e/
 out/
 *.tsbuildinfo
 next-env.d.ts
@@ -25,6 +26,12 @@ next-env.d.ts
 Thumbs.db
 .vscode/
 .idea/
+
+# Local dependency caches, service logs, and browser test output
+.cache/
+.runtime/
+frontend/test-results/
+frontend/playwright-report/
 
 # Assignment brief (local only)
 Scaler_SDE_Fullstack_Assignment_-_Signal_Clone.txt

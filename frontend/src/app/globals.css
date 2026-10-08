@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./shell.css";
 
 /* Dark mode follows the data-theme attribute set by the theme script (light | dark). */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
@@ -106,7 +107,7 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-inter), -apple-system, system-ui, "Segoe UI", "Noto Sans",
+  --font-sans: -apple-system, system-ui, "Segoe UI", "Noto Sans",
     "Helvetica Neue", Arial, sans-serif;
 
   --color-surface-primary: var(--surface-primary);
@@ -190,7 +191,7 @@
     line-height: 20px;
     letter-spacing: -0.08px;
     -webkit-font-smoothing: antialiased;
-    overflow: hidden;
+    overflow: auto;
   }
 
   button {

@@ -11,6 +11,18 @@ def test_direct_chat_is_unique_per_pair(alice, bob):
     assert again.json()["peer"]["id"] == alice.id
 
 
+def test_note_to_self_can_be_reopened_after_deleting_chat(alice):
+    note = next(c for c in alice.get("/api/conversations").json() if c["type"] == "note_to_self")
+    send(alice, note["id"], "old note")
+    alice.delete(f"/api/conversations/{note['id']}")
+    assert not alice.get("/api/conversations").json()
+    reopened = alice.post("/api/conversations", json={"type": "direct", "member_ids": [alice.id]})
+    assert reopened.status_code == 200
+    assert reopened.json()["id"] == note["id"]
+    assert [c["id"] for c in alice.get("/api/conversations").json()] == [note["id"]]
+    assert alice.get(f"/api/conversations/{note['id']}/messages").json()["items"] == []
+
+
 def test_list_sorted_by_activity_with_unread_and_preview(alice, bob, carol):
     with_bob = direct_chat(alice, bob)
     with_carol = direct_chat(alice, carol)
@@ -143,3 +155,27 @@ def test_group_requires_name(alice, bob):
         "/api/conversations", json={"type": "group", "name": " ", "member_ids": [bob.id]}
     )
     assert res.status_code == 400
+
+
+def test_group_update_validates_name_and_avatar_color(alice, bob):
+    gid = alice.post(
+        "/api/conversations", json={"type": "group", "name": "Crew", "member_ids": [bob.id]}
+    ).json()["id"]
+    assert alice.patch(f"/api/conversations/{gid}", json={"name": " "}).status_code == 422
+    assert (
+        alice.patch(f"/api/conversations/{gid}", json={"avatar_color": "unknown"}).status_code
+        == 422
+    )
+    assert alice.get(f"/api/conversations/{gid}").json()["name"] == "Crew"
+
+
+def test_member_add_rejects_unknown_users_without_partial_changes(alice, bob, carol):
+    gid = alice.post(
+        "/api/conversations", json={"type": "group", "name": "Crew", "member_ids": [bob.id]}
+    ).json()["id"]
+    res = alice.post(f"/api/conversations/{gid}/members", json={"user_ids": [carol.id, 999999]})
+    assert res.status_code == 400
+    assert {m["user"]["id"] for m in alice.get(f"/api/conversations/{gid}").json()["members"]} == {
+        alice.id,
+        bob.id,
+    }

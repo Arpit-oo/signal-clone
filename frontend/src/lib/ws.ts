@@ -45,6 +45,8 @@ class SocketClient {
     this.reconnectTimer = null;
     this.heartbeat = null;
     if (this.ws) {
+      this.ws.onopen = null;
+      this.ws.onmessage = null;
       this.ws.onclose = null;
       this.ws.close();
       this.ws = null;
@@ -61,18 +63,20 @@ class SocketClient {
 
   subscribe(listener: Listener) {
     this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
+    return () => { this.listeners.delete(listener); };
   }
 
   onStatus(listener: StatusListener) {
     this.statusListeners.add(listener);
-    return () => this.statusListeners.delete(listener);
+    return () => { this.statusListeners.delete(listener); };
   }
 
   /** Reconnect right away (e.g. when the browser comes back online). */
   kick() {
     if (!this.token || this.status === "open") return;
+    if (this.ws && this.ws.readyState <= WebSocket.OPEN) return;
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = null;
     this.retry = 0;
     this.open();
   }
@@ -84,11 +88,14 @@ class SocketClient {
 
   private open() {
     if (!this.token) return;
+    if (this.ws && this.ws.readyState <= WebSocket.OPEN) return;
+    this.reconnectTimer = null;
     this.setStatus("connecting");
     const ws = new WebSocket(wsUrl(this.token));
     this.ws = ws;
 
     ws.onopen = () => {
+      if (this.ws !== ws) return;
       this.retry = 0;
       this.lastPong = Date.now();
       this.setStatus("open");
@@ -102,6 +109,7 @@ class SocketClient {
     };
 
     ws.onmessage = (e) => {
+      if (this.ws !== ws) return;
       let event: ServerEvent;
       try {
         event = JSON.parse(e.data);
@@ -116,6 +124,7 @@ class SocketClient {
     };
 
     ws.onclose = (e) => {
+      if (this.ws !== ws) return;
       if (this.heartbeat) clearInterval(this.heartbeat);
       this.heartbeat = null;
       this.ws = null;

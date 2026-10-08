@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import auth, conversations, files, me, messages, search, users
 from app.core.config import get_settings
+from app.db.migrations import initialize_database
 from app.ws import router as ws_router
 from app.ws.background import run_sweeper
 
@@ -17,15 +18,19 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     settings.upload_dir.mkdir(parents=True, exist_ok=True)
+    if settings.auto_migrate_on_startup:
+        await initialize_database()
     if settings.seed_on_startup:
         from app.seed import seed_if_empty
 
         await seed_if_empty()
     sweeper = asyncio.create_task(run_sweeper())
-    yield
-    sweeper.cancel()
-    with contextlib.suppress(asyncio.CancelledError):
-        await sweeper
+    try:
+        yield
+    finally:
+        sweeper.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await sweeper
 
 
 def create_app() -> FastAPI:

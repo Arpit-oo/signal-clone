@@ -1,69 +1,186 @@
-import Image from "next/image";
+/* eslint-disable @next/next/no-img-element */
+import Link from "next/link";
+import SiteHeader from "@/components/site/SiteHeader";
+import SiteFooter from "@/components/site/SiteFooter";
+import "./site.css";
+
+const features = [
+  {
+    image: "Media.png",
+    title: "Say Anything",
+    description:
+      "Share text, voice messages, photos, videos, GIFs and files for free. Signal uses your phone's data connection so you can avoid SMS and MMS fees.",
+  },
+  {
+    image: "Calls.png",
+    title: "Speak Freely",
+    description:
+      "Make crystal-clear voice and video calls to people who live across town, or across the ocean, with no long-distance charges.",
+  },
+  {
+    image: "Stickers.png",
+    title: "Make Privacy Stick",
+    description:
+      "Add a new layer of expression to your conversations with encrypted stickers. You can also create and share your own sticker packs.",
+  },
+  {
+    image: "Groups.png",
+    title: "Get Together with Groups",
+    description:
+      "Group chats make it easy to stay connected to your family, friends, and coworkers.",
+  },
+];
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+    <div className="signal-site">
+      <SiteHeader />
+      <main id="main-content">
+        <section className="site-hero" aria-labelledby="hero-title">
+          <div className="site-container site-hero-grid">
+            <div className="site-hero-copy">
+              <h1 id="hero-title">Speak Freely</h1>
+              <p>
+                Say &quot;hello&quot; to a different messaging experience. An
+                unexpected focus on privacy, combined with all of the features
+                you expect.
+              </p>
+              <Link className="site-button site-button-white" href="/download">
+                Get Signal
+              </Link>
+            </div>
+            <div className="site-phones">
+              <img
+                className="site-iphone"
+                src="/signal/signal-iphone.png"
+                width="600"
+                height="1233"
+                alt="A group video call in Signal on iPhone"
+                fetchPriority="high"
+              />
+              <img
+                className="site-pixel"
+                src="/signal/signal-pixel.png"
+                width="600"
+                height="1196"
+                alt="A Signal conversation on Android"
+                fetchPriority="high"
+              />
+            </div>
+          </div>
+        </section>
+        <section className="site-section site-why" aria-labelledby="why-title">
+          <div className="site-container">
+            <h2 id="why-title">Why use Signal?</h2>
+            <p>
+              Explore below to see why Signal is a simple, powerful, and secure
+              messenger
+            </p>
+          </div>
+        </section>
+        <section
+          className="site-section site-information"
+          aria-labelledby="privacy-title"
+        >
+          <div className="site-container site-information-grid">
+            <div className="site-information-art site-encryption">
+              <img
+                src="/signal/encryption.png"
+                width="1200"
+                height="1178"
+                alt="An encrypted conversation sharing a photo of a mountain lake"
+              />
+            </div>
+            <div className="site-information-copy">
+              <h2 id="privacy-title">Share Without Insecurity</h2>
+              <p>
+                State-of-the-art end-to-end encryption (powered by the open
+                source Signal Protocol) keeps your conversations secure. We
+                can&apos;t read your messages or listen to your calls, and no
+                one else can either. Privacy isn’t an optional mode — it’s just
+                the way that Signal works. Every message, every call, every
+                time.
+              </p>
+            </div>
+          </div>
+        </section>
+        <section
+          className="site-section site-features"
+          aria-label="Signal features"
+        >
+          <div className="site-container site-feature-grid">
+            {features.map((feature) => (
+              <article className="site-feature-card" key={feature.title}>
+                <img
+                  src={`/signal/${feature.image}`}
+                  width="740"
+                  height={feature.image === "Stickers.png" ? "744" : "740"}
+                  alt=""
+                  loading="lazy"
+                />
+                <h3>{feature.title}</h3>
+                <p>{feature.description}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+        <section
+          className="site-section site-information"
+          aria-labelledby="no-ads-title"
+        >
+          <div className="site-container site-information-grid">
+            <div className="site-information-art">
+              <img
+                src="/signal/No-Ads.png"
+                width="1504"
+                height="1178"
+                alt="Advertisements crossed out inside a circle"
+                loading="lazy"
+              />
+            </div>
+            <div className="site-information-copy">
+              <h2 id="no-ads-title">No ads. No trackers. No kidding.</h2>
+              <p>
+                There are no ads, no affiliate marketers, and no creepy tracking
+                in Signal. So focus on sharing the moments that matter with the
+                people who matter to you.
+              </p>
+            </div>
+          </div>
+        </section>
+        <section
+          className="site-section site-information site-nonprofit"
+          aria-labelledby="nonprofit-title"
+        >
+          <div className="site-container site-information-grid">
+            <div className="site-information-art">
+              <img
+                src="/signal/Nonprofit503.png"
+                width="1504"
+                height="1178"
+                alt="A globe with conversation bubbles connecting people around the world"
+                loading="lazy"
+              />
+            </div>
+            <div className="site-information-copy">
+              <h2 id="nonprofit-title">Free for Everyone</h2>
+              <p>
+                Signal is an independent nonprofit. We&apos;re not tied to any
+                major tech companies, and we can never be acquired by one
+                either. Development is supported by grants and donations from
+                people like you.
+              </p>
+              <a
+                className="site-button site-button-outline"
+                href="https://signal.org/donate/"
+              >
+                Donate to Signal
+              </a>
+            </div>
+          </div>
+        </section>
       </main>
+      <SiteFooter />
     </div>
   );
 }

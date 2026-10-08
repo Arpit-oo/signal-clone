@@ -7,18 +7,28 @@ from pathlib import Path
 import pytest
 
 # Point the app at a throwaway database before anything imports the settings.
-_tmp = Path(tempfile.mkdtemp(prefix="signal-test-"))
+_test_cache = Path(__file__).resolve().parents[2] / ".cache" / "tests"
+_test_cache.mkdir(parents=True, exist_ok=True)
+_temp_dir = tempfile.TemporaryDirectory(prefix="signal-test-", dir=_test_cache)
+_tmp = Path(_temp_dir.name)
 os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///{(_tmp / 'test.db').as_posix()}"
 os.environ["UPLOAD_DIR"] = str(_tmp / "uploads")
 os.environ["DB_NULL_POOL"] = "true"
 os.environ["EXPIRY_SWEEP_SECONDS"] = "0.2"
 os.environ["TYPING_TTL_SECONDS"] = "1"
+os.environ["AUTO_MIGRATE_ON_STARTUP"] = "false"
+os.environ["SEED_ON_STARTUP"] = "false"
 
 from fastapi.testclient import TestClient  # noqa: E402
 
 from app.db.base import Base  # noqa: E402
 from app.db.session import engine  # noqa: E402
 from app.main import app  # noqa: E402
+
+
+def pytest_configure(config) -> None:
+    if config.option.basetemp is None:
+        config.option.basetemp = str(_test_cache / "pytest")
 
 
 async def _reset_schema() -> None:

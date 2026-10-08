@@ -1,7 +1,7 @@
 import random
 from collections.abc import Sequence
 
-from sqlalchemy import or_, select
+from sqlalchemy import exists, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import conflict
@@ -87,9 +87,16 @@ async def search_users(db: AsyncSession, viewer: User, q: str, limit: int = 20) 
     q = q.strip().lstrip("@")
     if not q:
         return []
-    like = f"%{q}%"
     digits = "".join(ch for ch in q if ch.isdigit())
-    filters = [User.display_name.ilike(like), User.username.ilike(like)]
+    filters = [
+        User.display_name.icontains(q, autoescape=True),
+        User.username.icontains(q, autoescape=True),
+        exists().where(
+            Contact.owner_id == viewer.id,
+            Contact.contact_id == User.id,
+            Contact.nickname.icontains(q, autoescape=True),
+        ),
+    ]
     if len(digits) >= 3:
         filters.append(User.phone.like(f"%{digits}%"))
     rows = await db.scalars(

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-import { api, ApiError } from "@/lib/api";
+import { api } from "@/lib/api";
 import type {
   Attachment,
   ChatMessage,
@@ -21,6 +21,7 @@ interface MessageBucket {
   hasMoreAfter: boolean;
   loading: boolean;
   loaded: boolean;
+  error: string | null;
 }
 
 interface Presence {
@@ -49,6 +50,7 @@ interface ChatState {
   meId: number | null;
   conversations: Record<number, Conversation>;
   conversationsLoaded: boolean;
+  conversationsError: string | null;
   details: Record<number, ConversationDetail>;
   users: Record<number, User>;
   buckets: Record<number, MessageBucket>;
@@ -85,6 +87,7 @@ const emptyBucket = (): MessageBucket => ({
   hasMoreAfter: false,
   loading: false,
   loaded: false,
+  error: null,
 });
 
 const STATUS_RANK: Record<LocalStatus, number> = {
@@ -121,6 +124,7 @@ function mergeMessages(existing: ChatMessage[], incoming: Message[]): ChatMessag
     const prev = byId.get(m.id);
     if (m.client_id && pendingByClient.has(m.client_id)) {
       const pending = pendingByClient.get(m.client_id)!;
+      releasePreviews(pending);
       byId.delete(pending.id);
     }
     byId.set(m.id, { ...m, status: maxStatus(prev?.status ?? null, m.status) });
@@ -161,6 +165,19 @@ function queueDelivered(id: number) {
 
 let tempId = -1;
 const typingTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const failedUploads = new Map<string, { conversationId: number; input: SendInput; id: number }>();
+const seenIncoming = new Set<number>();
+const summaryCursors = new Map<number, number>();
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Could not load messages. Try again.";
+}
+
+function releasePreviews(message: ChatMessage) {
+  for (const attachment of message.localAttachments ?? []) {
+    if (attachment.previewUrl) URL.revokeObjectURL(attachment.previewUrl);
+  }
+}
 
 export const useChat = create<ChatState>()((set, get) => {
   function patchBucket(id: number, fn: (b: MessageBucket) => Partial<MessageBucket>) {
@@ -198,30 +215,38 @@ export const useChat = create<ChatState>()((set, get) => {
 
   function applyIncoming(msg: Message) {
     const { meId } = get();
+    const duplicate = seenIncoming.has(msg.id);
+    seenIncoming.add(msg.id);
+    // Bound acknowledgement history for long-running tabs.
+    if (seenIncoming.size > 5000) seenIncoming.delete(seenIncoming.values().next().value!);
     const bucket = get().buckets[msg.conversation_id];
-    if (bucket?.loaded && !bucket.hasMoreAfter) {
+    const pending = bucket?.items.find((m) => m.id < 0 && m.client_id === msg.client_id);
+    if ((bucket?.loaded && !bucket.hasMoreAfter) || pending) {
       patchBucket(msg.conversation_id, (b) => ({ items: mergeMessages(b.items, [msg]) }));
     }
     if (msg.client_id) {
       set((s) => {
         if (!s.outbox[msg.client_id!]) return {};
-        const { [msg.client_id!]: _, ...rest } = s.outbox;
+        const rest = { ...s.outbox };
+        delete rest[msg.client_id!];
         return { outbox: rest };
       });
     }
+    if (duplicate) return;
     const conv = get().conversations[msg.conversation_id];
     if (!conv) {
       void ensureConversation(msg.conversation_id);
       return;
     }
     const fromOther = msg.sender_id !== meId;
-    const counts = fromOther && msg.type === "text";
+    const counts = fromOther && msg.type === "text" &&
+      msg.id > Math.max(conv.last_read_message_id ?? 0, summaryCursors.get(conv.id) ?? 0);
     patchConversation(msg.conversation_id, (c) => ({
       last_message: !c.last_message || msg.id >= c.last_message.id ? previewFrom(msg) : c.last_message,
       last_activity_at: msg.created_at > c.last_activity_at ? msg.created_at : c.last_activity_at,
       unread_count: counts ? c.unread_count + 1 : c.unread_count,
       mention_count: counts && meId && msg.mentions.includes(meId) ? c.mention_count + 1 : c.mention_count,
-      last_read_message_id: fromOther ? c.last_read_message_id : msg.id,
+      last_read_message_id: fromOther ? c.last_read_message_id : Math.max(c.last_read_message_id ?? 0, msg.id),
       is_archived: c.is_archived && isMuted(c),
       marked_unread: fromOther ? c.marked_unread : false,
     }));
@@ -258,20 +283,18 @@ export const useChat = create<ChatState>()((set, get) => {
     api.conversations
       .send(entry.conversation_id, entry)
       .then((m) => applyIncoming(m))
-      .catch((err) => {
-        // Network failures stay queued for the reconnect flush; rejections fail the bubble.
-        if (err instanceof ApiError && err.status > 0) failMessage(entry, err.message);
-      });
+      .catch((err) => failMessage(entry, errorMessage(err)));
   }
 
-  function failMessage(entry: OutboxEntry, _reason: string) {
-    patchMessage(entry.conversation_id, (m) => m.client_id === entry.client_id, () => ({ status: "failed" }));
+  function failMessage(entry: OutboxEntry, reason: string) {
+    patchMessage(entry.conversation_id, (m) => m.client_id === entry.client_id, () => ({ status: "failed", failureReason: reason }));
   }
 
   return {
     meId: null,
     conversations: {},
     conversationsLoaded: false,
+    conversationsError: null,
     details: {},
     users: {},
     buckets: {},
@@ -286,24 +309,48 @@ export const useChat = create<ChatState>()((set, get) => {
     },
 
     loadConversations: async () => {
-      const list = await api.conversations.list();
+      set({ conversationsError: null });
+      let list: Conversation[];
+      try {
+        list = await api.conversations.list();
+      } catch (err) {
+        set({ conversationsError: errorMessage(err) });
+        return;
+      }
       const conversations: Record<number, Conversation> = {};
-      for (const c of list) conversations[c.id] = c;
+      for (const c of list) {
+        conversations[c.id] = c;
+        summaryCursors.set(c.id, Math.max(summaryCursors.get(c.id) ?? 0, c.last_message?.id ?? 0));
+      }
       set({ conversations, conversationsLoaded: true });
       get().rememberUsers(list.flatMap((c) => (c.peer ? [c.peer] : [])));
     },
 
     upsertConversation: (c) => {
-      const { members: _members, ...plain } = c as ConversationDetail;
+      summaryCursors.set(c.id, Math.max(summaryCursors.get(c.id) ?? 0, c.last_message?.id ?? 0));
+      const plain = { ...c } as Partial<ConversationDetail> & Conversation;
+      delete plain.members;
       set((s) => ({ conversations: { ...s.conversations, [c.id]: plain } }));
       if (c.peer) get().rememberUsers([c.peer]);
     },
 
     removeConversation: (id) =>
       set((s) => {
-        const { [id]: _c, ...conversations } = s.conversations;
-        const { [id]: _b, ...buckets } = s.buckets;
-        return { conversations, buckets };
+        const conversations = { ...s.conversations };
+        const buckets = { ...s.buckets };
+        const details = { ...s.details };
+        for (const message of buckets[id]?.items ?? []) releasePreviews(message);
+        delete conversations[id];
+        delete buckets[id];
+        delete details[id];
+        const outbox = { ...s.outbox };
+        for (const [clientId, entry] of Object.entries(outbox)) {
+          if (entry.conversation_id === id) delete outbox[clientId];
+        }
+        for (const [clientId, entry] of failedUploads) {
+          if (entry.conversationId === id) failedUploads.delete(clientId);
+        }
+        return { conversations, buckets, details, outbox };
       }),
 
     loadDetail: async (id) => {
@@ -333,19 +380,26 @@ export const useChat = create<ChatState>()((set, get) => {
     loadLatest: async (id) => {
       const b = get().buckets[id];
       if (b?.loading) return;
-      patchBucket(id, () => ({ loading: true }));
+      patchBucket(id, () => ({ loading: true, error: null }));
       try {
         const page = await api.conversations.messages(id, { limit: 50 });
+        set((s) => {
+          const outbox = { ...s.outbox };
+          for (const message of page.items) {
+            if (message.sender_id === s.meId && message.client_id) delete outbox[message.client_id];
+          }
+          return { outbox };
+        });
         patchBucket(id, (cur) => ({
           // Keep pending sends that haven't been acked yet.
-          items: mergeMessages(cur.items.filter((m) => m.id < 0), page.items),
+          items: mergeMessages(cur.items.filter((m) => m.id < 0 || m.id > (page.items.at(-1)?.id ?? Infinity)), page.items),
           hasMoreBefore: page.has_more_before,
           hasMoreAfter: false,
           loaded: true,
           loading: false,
         }));
-      } catch {
-        patchBucket(id, () => ({ loading: false }));
+      } catch (err) {
+        patchBucket(id, () => ({ loading: false, error: errorMessage(err) }));
       }
     },
 
@@ -354,7 +408,7 @@ export const useChat = create<ChatState>()((set, get) => {
       if (!b || b.loading || !b.hasMoreBefore) return;
       const first = b.items.find((m) => m.id > 0);
       if (!first) return;
-      patchBucket(id, () => ({ loading: true }));
+      patchBucket(id, () => ({ loading: true, error: null }));
       try {
         const page = await api.conversations.messages(id, { before: first.id, limit: 50 });
         patchBucket(id, (cur) => ({
@@ -362,8 +416,8 @@ export const useChat = create<ChatState>()((set, get) => {
           hasMoreBefore: page.has_more_before,
           loading: false,
         }));
-      } catch {
-        patchBucket(id, () => ({ loading: false }));
+      } catch (err) {
+        patchBucket(id, () => ({ loading: false, error: errorMessage(err) }));
       }
     },
 
@@ -373,7 +427,7 @@ export const useChat = create<ChatState>()((set, get) => {
       const confirmed = b.items.filter((m) => m.id > 0);
       const last = confirmed[confirmed.length - 1];
       if (!last) return;
-      patchBucket(id, () => ({ loading: true }));
+      patchBucket(id, () => ({ loading: true, error: null }));
       try {
         const page = await api.conversations.messages(id, { after: last.id, limit: 50 });
         patchBucket(id, (cur) => ({
@@ -381,26 +435,34 @@ export const useChat = create<ChatState>()((set, get) => {
           hasMoreAfter: page.has_more_after,
           loading: false,
         }));
-      } catch {
-        patchBucket(id, () => ({ loading: false }));
+      } catch (err) {
+        patchBucket(id, () => ({ loading: false, error: errorMessage(err) }));
       }
     },
 
     jumpTo: async (id, messageId) => {
       const b = get().buckets[id];
       if (!b?.items.some((m) => m.id === messageId)) {
-        patchBucket(id, () => ({ loading: true }));
+        const pendingClients = new Set(b?.items.filter((m) => m.id < 0).map((m) => m.client_id));
+        patchBucket(id, () => ({ loading: true, error: null }));
         try {
           const page = await api.conversations.messages(id, { around: messageId, limit: 60 });
-          patchBucket(id, () => ({
-            items: page.items.map((m) => ({ ...m })),
+          set((s) => {
+            const outbox = { ...s.outbox };
+            for (const message of page.items) {
+              if (message.sender_id === s.meId && message.client_id) delete outbox[message.client_id];
+            }
+            return { outbox };
+          });
+          patchBucket(id, (cur) => ({
+            items: mergeMessages(cur.items.filter((m) => m.id < 0 || (m.client_id && pendingClients.has(m.client_id))), page.items),
             hasMoreBefore: page.has_more_before,
             hasMoreAfter: page.has_more_after,
             loaded: true,
             loading: false,
           }));
-        } catch {
-          patchBucket(id, () => ({ loading: false }));
+        } catch (err) {
+          patchBucket(id, () => ({ loading: false, error: errorMessage(err) }));
           return;
         }
       }
@@ -409,7 +471,8 @@ export const useChat = create<ChatState>()((set, get) => {
 
     send: async (conversationId, input) => {
       const { meId } = get();
-      if (!meId) return;
+      if (!meId) throw new Error("Sign in before sending a message.");
+      if (!input.body.trim() && !input.files?.length && !input.voice) return;
       const clientId = crypto.randomUUID();
       const id = tempId--;
       const files = input.files ?? [];
@@ -464,11 +527,12 @@ export const useChat = create<ChatState>()((set, get) => {
         uploaded = await Promise.all([
           ...files.map((f) => api.attachments.upload(f, { name: f.name })),
           ...(input.voice
-            ? [api.attachments.upload(input.voice.blob, { voice: true, durationMs: input.voice.durationMs, name: "voice-message.webm" })]
+            ? [api.attachments.upload(input.voice.blob, { voice: true, durationMs: input.voice.durationMs, name: input.voice.blob.type.includes("mp4") ? "voice-message.m4a" : input.voice.blob.type.includes("ogg") ? "voice-message.ogg" : "voice-message.webm" })]
             : []),
         ]);
-      } catch {
-        patchMessage(conversationId, (m) => m.id === id, () => ({ status: "failed" }));
+      } catch (err) {
+        failedUploads.set(clientId, { conversationId, input, id });
+        patchMessage(conversationId, (m) => m.id === id, () => ({ status: "failed", failureReason: errorMessage(err) }));
         return;
       }
 
@@ -480,21 +544,36 @@ export const useChat = create<ChatState>()((set, get) => {
         attachment_ids: uploaded.map((a) => a.id),
         mentions: input.mentions ?? [],
       };
+      patchMessage(conversationId, (m) => m.id === id, (m) => {
+        releasePreviews(m);
+        return { attachments: uploaded, localAttachments: undefined };
+      });
       set((s) => ({ outbox: { ...s.outbox, [clientId]: entry } }));
       dispatch(entry);
     },
 
     retry: (clientId) => {
+      const upload = failedUploads.get(clientId);
+      if (upload) {
+        failedUploads.delete(clientId);
+        get().discardFailed(upload.conversationId, clientId);
+        void get().send(upload.conversationId, upload.input);
+        return;
+      }
       const entry = get().outbox[clientId];
       if (!entry) return;
-      patchMessage(entry.conversation_id, (m) => m.client_id === clientId, () => ({ status: "sending" }));
+      patchMessage(entry.conversation_id, (m) => m.client_id === clientId, () => ({ status: "sending", failureReason: undefined }));
       dispatch(entry);
     },
 
     discardFailed: (conversationId, clientId) => {
+      failedUploads.delete(clientId);
+      const pending = get().buckets[conversationId]?.items.find((m) => m.client_id === clientId);
+      if (pending) releasePreviews(pending);
       patchBucket(conversationId, (b) => ({ items: b.items.filter((m) => m.client_id !== clientId) }));
       set((s) => {
-        const { [clientId]: _, ...rest } = s.outbox;
+        const rest = { ...s.outbox };
+        delete rest[clientId];
         return { outbox: rest };
       });
     },
@@ -516,6 +595,7 @@ export const useChat = create<ChatState>()((set, get) => {
       const needs =
         c.unread_count > 0 || c.marked_unread || (c.last_read_message_id ?? 0) < last.id;
       if (!needs) return;
+      const previous = { unread_count: c.unread_count, mention_count: c.mention_count, marked_unread: c.marked_unread, last_read_message_id: c.last_read_message_id };
       patchConversation(conversationId, () => ({
         unread_count: 0,
         mention_count: 0,
@@ -523,7 +603,9 @@ export const useChat = create<ChatState>()((set, get) => {
         last_read_message_id: last.id,
       }));
       if (!socket.send("receipt.read", { conversation_id: conversationId, up_to_id: last.id })) {
-        void api.conversations.markRead(conversationId, last.id).catch(() => {});
+        void api.conversations.markRead(conversationId, last.id).catch(() => {
+          patchConversation(conversationId, (current) => current.last_read_message_id === last.id ? previous : {});
+        });
       }
     },
 
@@ -576,7 +658,7 @@ export const useChat = create<ChatState>()((set, get) => {
             }));
             patchConversation(r.conversation_id, (c) =>
               c.last_message?.id === r.message_id
-                ? { last_message: { ...c.last_message, status: r.status } }
+                ? { last_message: { ...c.last_message, status: maxStatus(c.last_message.status, r.status) as MessageStatus } }
                 : {},
             );
           }
@@ -677,6 +759,23 @@ export function stopTyping() {
   if (typingConv !== null) socket.send("typing.stop", { conversation_id: typingConv });
   typingConv = null;
   typingLastSent = 0;
+}
+
+/** Clear account-specific data and release browser resources when a session changes. */
+export function resetChat() {
+  stopTyping();
+  if (deliveredTimer) clearTimeout(deliveredTimer);
+  deliveredTimer = null;
+  deliveredQueue = [];
+  for (const timer of typingTimers.values()) clearTimeout(timer);
+  typingTimers.clear();
+  for (const bucket of Object.values(useChat.getState().buckets)) {
+    for (const message of bucket.items) releasePreviews(message);
+  }
+  failedUploads.clear();
+  seenIncoming.clear();
+  summaryCursors.clear();
+  useChat.setState(useChat.getInitialState(), true);
 }
 
 // --- selectors ------------------------------------------------------------------------------

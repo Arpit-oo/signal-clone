@@ -43,3 +43,16 @@ def test_profile_update_and_username_uniqueness(alice, bob):
     assert bob.patch("/api/me", json={"username": "alice_1"}).status_code == 409
     assert bob.patch("/api/me", json={"username": "1bad"}).status_code == 422
     assert bob.patch("/api/me", json={"avatar_color": "Z999"}).status_code == 422
+
+
+def test_required_profile_fields_reject_null_without_changing_profile(alice):
+    for field in (
+        "display_name",
+        "about",
+        "avatar_color",
+        "read_receipts_enabled",
+        "typing_indicators_enabled",
+    ):
+        assert alice.patch("/api/me", json={field: None}).status_code == 422
+    assert alice.get("/api/me").json()["display_name"] == "Alice"
+    assert alice.patch("/api/me", json={"username": None, "about_emoji": None}).status_code == 200

@@ -1,10 +1,10 @@
 from fastapi import UploadFile
-from sqlalchemy import and_, exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import not_found
-from app.models import Attachment, ConversationMember, Message, User
+from app.models import Attachment, Message, User
 from app.services import storage
+from app.services.visibility import visible_messages
 
 
 def _kind_for(mime: str, voice: bool) -> str:
@@ -43,23 +43,17 @@ async def upload(
 
 
 async def get_for_viewer(db: AsyncSession, viewer: User, attachment_id: int) -> Attachment:
-    """The uploader, or any member who could see the message, may download a file."""
+    """Unsent uploads belong to the uploader; sent files follow message visibility."""
     att = await db.get(Attachment, attachment_id)
     if att is None:
         raise not_found("Attachment")
-    if att.uploader_id == viewer.id:
+    if att.message_id is None and att.uploader_id == viewer.id:
         return att
     if att.message_id is not None:
         allowed = await db.scalar(
-            select(
-                exists().where(
-                    and_(
-                        Message.id == att.message_id,
-                        ConversationMember.conversation_id == Message.conversation_id,
-                        ConversationMember.user_id == viewer.id,
-                    )
-                )
-            )
+            visible_messages(viewer.id)
+            .where(Message.id == att.message_id, Message.deleted_at.is_(None))
+            .with_only_columns(Message.id)
         )
         if allowed:
             return att

@@ -65,6 +65,11 @@ class ConversationCreate(BaseModel):
     avatar_color: str | None = None
     disappearing_seconds: int | None = None
 
+    @field_validator("disappearing_seconds")
+    @classmethod
+    def _timer(cls, v: int | None) -> int | None:
+        return v if v is not None and v > 0 else None
+
     @field_validator("avatar_color")
     @classmethod
     def _color(cls, v: str | None) -> str | None:
@@ -80,6 +85,20 @@ class ConversationUpdate(BaseModel):
     description: str | None = Field(None, max_length=480)
     avatar_color: str | None = None
     disappearing_seconds: int | None = None
+
+    @field_validator("name")
+    @classmethod
+    def _name(cls, v: str | None) -> str | None:
+        if v is None or not v.strip():
+            raise ValueError("Groups need a name")
+        return v.strip()
+
+    @field_validator("avatar_color")
+    @classmethod
+    def _color(cls, v: str | None) -> str | None:
+        if v is not None and v not in AVATAR_COLORS:
+            raise ValueError("Unknown avatar color")
+        return v
 
     @field_validator("disappearing_seconds")
     @classmethod

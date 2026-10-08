@@ -108,6 +108,7 @@ export interface Message {
 export interface ChatMessage extends Omit<Message, "status"> {
   status: LocalStatus | null;
   localAttachments?: LocalAttachment[];
+  failureReason?: string;
 }
 
 export interface LocalAttachment {

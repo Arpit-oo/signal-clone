@@ -488,6 +488,9 @@ def main() -> None:
         asyncio.run(reset_and_seed())
         print("Database reset and seeded.")
     else:
+        from app.db.migrations import migrate_database
+
+        migrate_database()
         print("Seeded." if asyncio.run(seed_if_empty()) else "Database already has data; skipped.")
 
 

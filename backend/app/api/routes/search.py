@@ -21,11 +21,26 @@ class SearchResults(BaseModel):
 @router.get("/search", response_model=SearchResults)
 async def search(me: CurrentUser, db: DB, q: str = Query(min_length=1, max_length=200)):
     """Signal's left-pane search: chats, contacts (people without a chat yet), and messages."""
-    needle = q.strip().lower()
+    needle = q.strip().lower().lstrip("@")
     conversations = [
         c
         for c in await conv_svc.list_conversations(db, me)
-        if needle in c.name.lower() or (c.peer and needle in (c.peer.phone or ""))
+        if needle
+        and (
+            needle in c.name.lower()
+            or (
+                c.peer
+                and any(
+                    needle in (value or "").lower()
+                    for value in (
+                        c.peer.phone,
+                        c.peer.display_name,
+                        c.peer.username,
+                        c.peer.nickname,
+                    )
+                )
+            )
+        )
     ]
     in_chats = {c.peer.id for c in conversations if c.peer}
     people = await users_svc.present_users(db, me.id, await users_svc.search_users(db, me, q))

@@ -1,14 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
 
 import { Providers } from "@/components/Providers";
 import "./globals.css";
 
-const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
-
 export const metadata: Metadata = {
   title: "Signal",
-  description: "Private messaging. A Signal Desktop clone.",
+  description: "A recreation of Signal’s homepage with a working local messaging demo.",
+  icons: { icon: "/signal/favicon.svg" },
 };
 
 export const viewport: Viewport = {
@@ -24,7 +22,7 @@ export const viewport: Viewport = {
 const themeScript = `(() => {
   try {
     const pref = JSON.parse(localStorage.getItem("signal-prefs") || "{}");
-    const theme = pref.theme || "system";
+    const theme = pref.state?.theme || "system";
     const dark = theme === "dark" || (theme === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
     document.documentElement.dataset.theme = dark ? "dark" : "light";
   } catch {
@@ -32,9 +30,9 @@ const themeScript = `(() => {
   }
 })();`;
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={inter.variable} suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>

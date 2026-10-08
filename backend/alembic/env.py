@@ -20,7 +20,7 @@ from app import models  # noqa: E402,F401  (registers tables on Base.metadata)
 from app.core.config import get_settings  # noqa: E402
 from app.db.base import Base  # noqa: E402
 
-config.set_main_option("sqlalchemy.url", get_settings().database_url)
+config.set_main_option("sqlalchemy.url", get_settings().database_url.replace("%", "%%"))
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,

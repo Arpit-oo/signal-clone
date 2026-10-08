@@ -52,6 +52,20 @@ class MeUpdate(BaseModel):
     read_receipts_enabled: bool | None = None
     typing_indicators_enabled: bool | None = None
 
+    @field_validator(
+        "display_name",
+        "about",
+        "avatar_color",
+        "read_receipts_enabled",
+        "typing_indicators_enabled",
+        mode="before",
+    )
+    @classmethod
+    def _not_null(cls, v):
+        if v is None:
+            raise ValueError("This field cannot be null")
+        return v
+
     @field_validator("display_name")
     @classmethod
     def _strip_name(cls, v: str | None) -> str | None:

@@ -1,4 +1,4 @@
-from tests.conftest import direct_chat, recv_until
+from tests.conftest import direct_chat, recv_until, send
 
 
 def test_message_delivery_receipts_and_typing_over_websocket(alice, bob):
@@ -71,6 +71,65 @@ def test_errors_are_reported_without_dropping_socket(alice, bob, carol):
         assert err["ref"]["client_id"] == "intruder-1"
         c.send_json({"type": "ping"})
         assert recv_until(c, "pong") is None
+
+
+def test_malformed_frames_do_not_drop_socket(alice):
+    with alice.ws() as ws:
+        ws.send_text("{")
+        assert recv_until(ws, "error")["detail"]
+        ws.send_json(["receipt.read"])
+        assert "object" in recv_until(ws, "error")["detail"]
+        ws.send_json({"type": "receipt.delivered", "data": [1, 2]})
+        assert "object" in recv_until(ws, "error")["detail"]
+        ws.send_json({"type": "ping"})
+        assert recv_until(ws, "pong") is None
+
+
+def test_read_with_receipts_disabled_still_notifies_sender_of_delivery(alice, bob):
+    cid = direct_chat(alice, bob)
+    bob.patch("/api/me", json={"read_receipts_enabled": False})
+    with alice.ws() as ws:
+        msg = send(alice, cid, "received over REST")
+        recv_until(ws, "message.new")
+        bob.post(f"/api/conversations/{cid}/read", json={"up_to_id": msg["id"]})
+        ws.send_json({"type": "ping"})
+        frame = ws.receive_json()
+        assert frame["type"] == "receipt.updated"
+        assert frame["data"][0]["status"] == "delivered"
+
+
+def test_blocking_also_blocks_direct_typing_events(alice, bob):
+    cid = direct_chat(alice, bob)
+    with alice.ws() as a, bob.ws() as b:
+        a.send_json({"type": "ping"})
+        recv_until(a, "pong")
+        b.send_json({"type": "ping"})
+        recv_until(b, "pong")
+        bob.put(f"/api/blocks/{alice.id}")
+        a.send_json({"type": "typing.start", "data": {"conversation_id": cid}})
+        a.send_json({"type": "ping"})
+        recv_until(a, "pong")
+        b.send_json({"type": "ping"})
+        assert b.receive_json()["type"] == "pong"
+
+
+def test_new_group_member_cannot_receive_old_messages_or_reply_previews(alice, bob, carol):
+    gid = alice.post(
+        "/api/conversations", json={"type": "group", "name": "Private", "member_ids": [bob.id]}
+    ).json()["id"]
+    original = send(alice, gid, "before Carol joined")
+    alice.post(f"/api/conversations/{gid}/members", json={"user_ids": [carol.id]})
+    with carol.ws() as ws:
+        alice.patch(f"/api/messages/{original['id']}", json={"body": "still private"})
+        ws.send_json({"type": "ping"})
+        assert ws.receive_json()["type"] == "pong"
+        reply = send(alice, gid, "after Carol joined", reply_to_id=original["id"])
+        assert reply["reply_to"]["body"] == "still private"
+        incoming = recv_until(ws, "message.new")
+        assert incoming["body"] == "after Carol joined"
+        assert incoming["reply_to"] is None
+    items = carol.get(f"/api/conversations/{gid}/messages").json()["items"]
+    assert items[-1]["reply_to"] is None
 
 
 def test_group_changes_are_pushed(alice, bob, carol):
