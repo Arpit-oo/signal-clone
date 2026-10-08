@@ -1,8 +1,10 @@
+import json
 from functools import lru_cache
 from pathlib import Path
+from typing import Annotated
 
 from pydantic import field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 from sqlalchemy.engine import make_url
 
 BASE_DIR = Path(__file__).resolve().parents[2]
@@ -25,7 +27,11 @@ class Settings(BaseSettings):
     # Phone verification is mocked: every number accepts this code.
     mock_otp: str = "123456"
 
-    cors_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    # Accepts a JSON list or a comma-separated string, e.g. "https://a.app,https://b.app".
+    cors_origins: Annotated[list[str], NoDecode] = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
 
     # Edits are allowed for this long after sending (Signal uses 24h).
     edit_window_seconds: int = 24 * 60 * 60
@@ -48,6 +54,16 @@ class Settings(BaseSettings):
             url = url.set(database=(BASE_DIR / url.database).resolve().as_posix())
             return url.render_as_string(hide_password=False)
         return value
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def _cors_list(cls, value: object) -> object:
+        if not isinstance(value, str):
+            return value
+        value = value.strip()
+        if value.startswith("["):
+            return json.loads(value)
+        return [origin.strip().rstrip("/") for origin in value.split(",") if origin.strip()]
 
     @field_validator("upload_dir")
     @classmethod
