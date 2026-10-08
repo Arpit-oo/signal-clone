@@ -1,0 +1,21 @@
+# Only application sources and locked build metadata belong in the context.
+*
+!app/
+!app/**
+!alembic/
+!alembic/**
+!alembic.ini
+!pyproject.toml
+!uv.lock
+!README.md
+!docker_entrypoint.py
+!Dockerfile
+!.dockerignore
+
+# Also omit generated files nested beneath the included source directories.
+**/__pycache__/
+**/*.py[cod]
+**/.env
+**/.env.*
+**/*.db
+**/*.db-*

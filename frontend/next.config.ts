@@ -4,6 +4,7 @@ const API_ORIGIN = process.env.API_ORIGIN ?? "http://127.0.0.1:8000";
 
 const nextConfig: NextConfig = {
   devIndicators: false,
+  output: process.env.NEXT_STANDALONE === "true" ? "standalone" : undefined,
   distDir: process.env.NEXT_DIST_DIR ?? ".next",
   turbopack: {
     rules: {

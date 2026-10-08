@@ -1,0 +1,79 @@
+name: signal-clone
+
+services:
+  backend:
+    image: signal-clone-backend:local
+    build:
+      context: ./backend
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 20s
+    environment:
+      DATABASE_URL: sqlite+aiosqlite:////app/data/signal.db
+      UPLOAD_DIR: /app/data/uploads
+      JWT_SECRET: ${JWT_SECRET:-}
+      AUTO_MIGRATE_ON_STARTUP: "true"
+      SEED_ON_STARTUP: ${SEED_ON_STARTUP:-true}
+      CORS_ORIGINS: '["http://localhost:${FRONTEND_PORT:-3000}","http://127.0.0.1:${FRONTEND_PORT:-3000}"]'
+    ports:
+      - "${BIND_ADDRESS:-127.0.0.1}:${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - backend-data:/app/data
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import json,urllib.request; response=urllib.request.urlopen('http://127.0.0.1:8000/health',timeout=3); assert json.load(response)['status']=='ok'"
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 6
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  frontend:
+    image: signal-clone-frontend:local
+    build:
+      context: ./frontend
+      args:
+        API_ORIGIN: http://backend:8000
+        NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-ws://localhost:${BACKEND_PORT:-8000}}
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 20s
+    depends_on:
+      backend:
+        condition: service_healthy
+        restart: true
+    ports:
+      - "${BIND_ADDRESS:-127.0.0.1}:${FRONTEND_PORT:-3000}:3000"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/login',{signal:AbortSignal.timeout(3000)}).then(response=>process.exit(response.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 6
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  backend-data:

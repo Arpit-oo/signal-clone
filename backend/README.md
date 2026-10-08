@@ -2,6 +2,8 @@
 
 FastAPI, SQLite, and WebSockets power the local messaging app. Requires Python 3.12+ and `uv`.
 
+The complete app also runs through [Docker Compose](../DOCKER.md), with no host Python installation required. The backend image uses locked production dependencies, UID 10001, and a named volume at `/app/data` for SQLite, uploads, and a persistent generated signing secret.
+
 ## Run
 
 From the project root, use the launch scripts documented in the root README. To run just the API from PowerShell:

@@ -2,6 +2,8 @@
 
 Next.js App Router, React, TypeScript, Tailwind CSS, and Zustand provide the messaging UI. The root [README](../README.md) covers the complete app and Windows launch scripts.
 
+For the container workflow, see [DOCKER.md](../DOCKER.md). The multi-stage image sets `NEXT_STANDALONE=true`, copies the minimal server/static/public output, and runs as the non-root `node` user. Normal local builds retain their existing output.
+
 ## Run separately
 
 ```powershell

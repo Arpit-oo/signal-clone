@@ -1,6 +1,26 @@
 # Signal Clone
 
-A recreation of Signal’s public homepage, paired with a working Signal-inspired messaging app built with Next.js/TypeScript, FastAPI, SQLite, and real-time WebSockets. Source, dependencies, browser binaries, data, logs, and test artifacts stay inside this project.
+A recreation of Signal’s public homepage, paired with a working Signal-inspired messaging app built with Next.js/TypeScript, FastAPI, SQLite, and real-time WebSockets. Use Docker Compose for a containerized setup, or the local scripts to keep dependencies, browsers, data, logs, and test artifacts inside this project.
+
+## Start with Docker
+
+Requires Docker with Linux containers and Docker Compose v2. From the repository root:
+
+```sh
+docker compose up --build -d --wait
+```
+
+Open **http://localhost:3000**; the API docs are at **http://localhost:8000/docs**. Sign in with a seeded account below and code **123456**, or create your own account at `/signup`. No local Node.js, Python, or `uv` installation is needed to run the containers.
+
+Both images use locked dependencies and run as non-root users. Compose waits for backend health before starting the production Next.js server. SQLite, uploads, and an automatically generated session-signing secret persist in the `backend-data` named volume. Migrations run on startup and demo data is seeded only when the database is empty. The container data is separate from `backend/data/` used by the Windows scripts.
+
+```sh
+docker compose ps
+docker compose logs -f
+docker compose down
+```
+
+`down` stops/removes the containers and retains the data volume. Running the startup command again restores the same accounts, messages, uploads, and signing secret. Optional ports, browser WebSocket URL, and secret overrides are in the root [.env.example](.env.example); copy it to `.env` to customize. Stop local services sharing ports 3000/8000, or choose other ports. See [DOCKER.md](DOCKER.md) for configuration, rebuilding, persistence, and troubleshooting.
 
 ## Start on Windows
 
@@ -169,7 +189,7 @@ npm run build
 npm run test:e2e
 ```
 
-Backend tests cover authentication, history visibility, message operations, concurrent retries and upload claims, media permissions, receipts, groups, malformed WebSocket events, migrations, seed idempotency, and Story audiences/expiry/receipt privacy/restart persistence. Frontend unit tests cover duplicate delivery, monotonic receipts, racing page loads/search jumps, upload previews, offline sends/uploads, failed reads, and session recovery. Browser tests exercise the homepage with the API unavailable, responsive navigation, language-dialog focus, separate messaging sessions, groups, settings, new accounts, short-screen onboarding, history resizing, late search responses, search retries, unloaded-history jumps, menu focus, attachment drafts, microphone failures, live Stories, photo/video playback, private receipts, and closing a dialog before its response arrives.
+Backend tests cover authentication, history visibility, message operations, concurrent retries and upload claims, media permissions, receipts, groups, malformed WebSocket events, migrations, seed idempotency, Story audiences/expiry/receipt privacy/restart persistence, and Docker signing-secret creation/reuse/concurrency/overrides. Frontend unit tests cover duplicate delivery, monotonic receipts, racing page loads/search jumps, upload previews, offline sends/uploads, failed reads, and session recovery. Browser tests exercise the homepage with the API unavailable, responsive navigation, language-dialog focus, separate messaging sessions, groups, settings, new accounts, short-screen onboarding, history resizing, late search responses, search retries, unloaded-history jumps, menu focus, attachment drafts, microphone failures, live Stories, photo/video playback, private receipts, and closing a dialog before its response arrives.
 
 `npm audit --omit=dev` checks production dependencies. The full audit currently reports a development-only `braces` issue through Next's ESLint tooling; [the upstream advisory](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) lists no patched version. The project retains the matching Next/ESLint release.
 
