@@ -42,10 +42,36 @@ If PowerShell policy prevents local scripts, use `powershell -NoProfile -Executi
 - Replies, reactions, editing, forwarding, message information, deletion for yourself or everyone, pagination and search.
 - Images, videos, audio, downloadable files, and microphone voice notes with preview. Microphone access requires browser permission.
 - Pinning, archiving, muting, unread filters, Note to Self, and disappearing-message timers.
+- Stories at `/stories`: text, photo, and video posts shared with explicitly selected people, 24-hour expiry, viewing receipts, and author deletion. Reply opens a direct chat with the author. Story media requires an authorized session; blocks apply in both directions.
 - Light/dark/system theme, chat colors, message text size, notification privacy, typing/read-receipt privacy, and keyboard preferences.
 - Desktop and mobile layouts, keyboard-accessible controls/dialogs, loading states, and actionable errors.
 
 Phone verification uses a fixed mock OTP; no SMS is sent. Messages and uploads are stored on the local server without Signal's end-to-end encryption. Voice/video calling and multi-device linking are outside the implemented scope.
+
+## Architecture and database
+
+Next.js serves the public website and authenticated messaging screens. The typed REST client sends bearer-token requests through the Next `/api/*` proxy to FastAPI. A single shared WebSocket per browser tab handles messages, receipts, typing, presence, and change notifications. Both REST and WebSocket handlers use backend services to enforce membership and privacy rules before reading or updating SQLite through async SQLAlchemy. Alembic migrations preserve existing data. Files live on disk, with their metadata and access relationships in SQLite.
+
+The server runs as one worker because presence and WebSocket connections are held in memory. SQLite uses foreign keys and WAL mode. Client retry IDs prevent duplicate messages; unique conversation identity keys prevent duplicate direct chats. Browser preferences persist locally, while conversations, contacts, profile data, and Stories persist on the server.
+
+| Table | Key and relationships | Purpose |
+| --- | --- | --- |
+| `users` | `id`; unique phone and username | Profiles, privacy preferences, last seen |
+| `contacts` | `(owner_id, contact_id)` → users | Per-account contacts and nicknames |
+| `blocks` | `(blocker_id, blocked_id)` → users | Privacy/access restrictions |
+| `conversations` | `id`; creator → users; unique optional identity key | Direct, group, and Note to Self metadata |
+| `conversation_members` | `(conversation_id, user_id)` | Roles, membership/history boundaries, read cursor, pins, archive/mute state |
+| `messages` | `id`; conversation/sender/reply references; unique client ID | Text/system content, edits/deletion, disappearing timers |
+| `message_receipts` | `(message_id, user_id)` | Delivery and read timestamps per recipient |
+| `message_hidden` | `(message_id, user_id)` | Delete-for-me visibility |
+| `message_mentions` | `(message_id, user_id)` | Mention lookup |
+| `reactions` | `(message_id, user_id)` | One emoji reaction per user per message |
+| `attachments` | `id`; message and uploader references | Stored-file metadata; uploads are claimed when a message is sent |
+| `stories` | `id`; author → users; expiry index | Text/media content, storage metadata, creation and expiry |
+| `story_recipients` | `(story_id, user_id)` | Explicit audience fixed when the story is published |
+| `story_views` | `(story_id, user_id)` → story recipient | Idempotent first-view timestamp and seen state |
+
+Story feeds and downloads reject expired or blocked posts immediately; the background sweeper removes expired records and files. Authors can see only viewing receipts permitted by the existing read-receipts setting. The selected audience is visible only to the author. This iteration supports sharing with selected individuals; group-story distribution and drawing/sticker tools are outside this implementation.
 
 ## Local files and configuration
 
@@ -88,7 +114,7 @@ npm run build
 npm run test:e2e
 ```
 
-Backend tests cover authentication, history visibility, message operations, concurrent retries and upload claims, media permissions, receipts, groups, malformed WebSocket events, migrations, and seed idempotency. Frontend unit tests cover duplicate delivery, monotonic receipts, racing page loads/search jumps, upload previews, offline sends/uploads, failed reads, and session recovery. Browser tests exercise the homepage with the API unavailable, responsive navigation, language-dialog focus, separate messaging sessions, groups, settings, new accounts, history resizing, attachment drafts, and microphone failures.
+Backend tests cover authentication, history visibility, message operations, concurrent retries and upload claims, media permissions, receipts, groups, malformed WebSocket events, migrations, seed idempotency, and Story audiences/expiry/receipt privacy/restart persistence. Frontend unit tests cover duplicate delivery, monotonic receipts, racing page loads/search jumps, upload previews, offline sends/uploads, failed reads, and session recovery. Browser tests exercise the homepage with the API unavailable, responsive navigation, language-dialog focus, separate messaging sessions, groups, settings, new accounts, short-screen onboarding, history resizing, attachment drafts, microphone failures, live Stories, photo/video playback, private receipts, and closing a dialog before its response arrives.
 
 `npm audit --omit=dev` checks production dependencies. The full audit currently reports a development-only `braces` issue through Next's ESLint tooling; [the upstream advisory](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) lists no patched version. The project retains the matching Next/ESLint release.
 

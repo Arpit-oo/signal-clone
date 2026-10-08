@@ -45,6 +45,9 @@ async def media(key: str) -> FileResponse:
     """Profile and group avatars. Public, like Signal profile photos shared with contacts."""
     if not key.startswith("avatars/"):
         raise not_found("File")
+    filename = key.removeprefix("avatars/")
+    if not filename or "/" in filename or "\\" in filename or filename in (".", ".."):
+        raise not_found("File")
     path = storage.path_for(key)
     if not path.exists():
         raise not_found("File")

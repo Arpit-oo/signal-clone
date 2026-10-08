@@ -22,7 +22,7 @@ Browser variables are bundled into production builds. Rebuild after changing the
 
 ## Code
 
-- `src/app/`: homepage/download/login/messaging pages, root layout, design tokens.
+- `src/app/`: homepage/download/login/signup/messaging/Stories pages, root layout, design tokens.
 - `src/components/site/`, `public/signal/`: responsive website navigation/footer and local reference assets.
 - `src/components/`: app/sidebar, contacts/groups, settings/profile, dialogs, and icons.
 - `src/components/chat/`: timeline, composer, message actions, media, voice notes, search, and scoped styles.
@@ -30,6 +30,8 @@ Browser variables are bundled into production builds. Rebuild after changing the
 - `src/lib/`: typed API client, server contracts, reconnecting WebSocket client.
 
 The provider restores sessions, applies appearance, subscribes to events, refreshes missed state on reconnect, and delivers permitted background notifications. Login outages preserve saved tokens. Failed uploads stay retryable in the open tab; outbox and drafts are memory-resident and are cleared on full reload/sign-out.
+
+Stories uses the same session and WebSocket connection. Its feed refreshes on story changes and reconnect; the portrait viewer supports pause/resume and previous/next navigation. Creation requires an explicit audience and sends text or selected media to the backend. Story view/delete operations and media authorization use the REST API. `/stories` is a protected return destination through sign-in and profile setup.
 
 ## Check
 

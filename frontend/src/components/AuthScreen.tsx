@@ -88,12 +88,10 @@ export default function AuthScreen({
         href={routes.home}
         aria-label="Signal home"
       >
-        <span className="signal-mark">
+        <span className="signal-mark" aria-hidden="true">
           <span className="auth-signal-logo" />
         </span>
-        <span>
-          Signal<span className="brand-clone">LOCAL EDITION</span>
-        </span>
+        <span>Signal</span>
       </Link>
       <section className="login-story">
         <span className="login-eyebrow">A LITTLE MORE CONNECTION.</span>
@@ -133,7 +131,10 @@ export default function AuthScreen({
           Your account. Your conversations.
         </div>
       </section>
-      <section className="login-card">
+      <section
+        className={`login-card ${profileStep ? "auth-profile-card" : ""}`}
+        aria-busy={busy || status === "loading"}
+      >
         {status === "loading" ||
         (mode === "login" && status === "authenticated" && me?.display_name) ? (
           <div className="login-loading">
@@ -212,13 +213,16 @@ export default function AuthScreen({
                   type="tel"
                   required
                   autoComplete="tel"
+                  aria-describedby="auth-phone-hint"
                   value={phone}
                   maxLength={32}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="+91 98765 43210"
                   disabled={busy}
                 />
-                <small>Include your country code, such as +91 or +1.</small>
+                <small id="auth-phone-hint">
+                  Include your country code, such as +91 or +1.
+                </small>
               </label>
               <ErrorText>{error}</ErrorText>
               <Button
@@ -275,6 +279,7 @@ export default function AuthScreen({
             <IconButton
               name="arrow-left"
               label="Change phone number"
+              disabled={busy}
               onClick={() => {
                 setStep("phone");
                 setError("");

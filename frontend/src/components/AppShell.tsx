@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
+import { routes } from "@/lib/routes";
 import type { Conversation, Message, SearchResults, User } from "@/lib/types";
 import { socket, type SocketStatus } from "@/lib/ws";
 import { sortConversations, useChat } from "@/stores/chat";
@@ -316,9 +318,7 @@ export default function AppShell({
   const details = initialDetails;
   const [settings, setSettings] = useState(false);
   const [newChat, setNewChat] = useState(false);
-  const [comingSoon, setComingSoon] = useState<"Stories" | "Calls" | null>(
-    null,
-  );
+  const [comingSoon, setComingSoon] = useState<"Calls" | null>(null);
   const [filter, setFilter] = useState<"all" | "unread" | "pinned" | "archive">(
     () =>
       selectedId && conversations[selectedId]?.is_archived ? "archive" : "all",
@@ -667,12 +667,11 @@ export default function AppShell({
             <path d="M7 3 4 4C1 6 5 13 8 16s10 7 12 4l1-3-5-3-2 2c-3-1-5-3-6-6l2-2-3-5Z" />
           </svg>
         </button>
-        <button
-          type="button"
+        <Link
+          href={routes.stories}
           className="rail-button"
-          title="Stories · Coming soon"
-          aria-label="Stories · Coming soon"
-          onClick={() => setComingSoon("Stories")}
+          title="Stories"
+          aria-label="Stories"
         >
           <svg
             width="23"
@@ -687,7 +686,7 @@ export default function AppShell({
             <rect x="8" y="3" width="12" height="18" rx="3" />
             <path d="m6 5-2 1c-1 .3-1.5 1.3-1.2 2.4l2.8 10" />
           </svg>
-        </button>
+        </Link>
         <button
           type="button"
           className={`rail-button ${filter === "archive" ? "active" : ""}`}
@@ -978,11 +977,7 @@ export default function AppShell({
             </span>
             Chats
           </button>
-          <button
-            type="button"
-            aria-label="Stories · Coming soon"
-            onClick={() => setComingSoon("Stories")}
-          >
+          <Link href={routes.stories} aria-label="Stories">
             <svg
               width="24"
               height="24"
@@ -997,7 +992,7 @@ export default function AppShell({
               <path d="m6 5-2 1c-1 .3-1.5 1.3-1.2 2.4l2.8 10" />
             </svg>
             Stories
-          </button>
+          </Link>
         </nav>
       </aside>
       <section className="app-conversation" aria-label="Messages">
@@ -1088,9 +1083,7 @@ export default function AppShell({
           <div className="ui-modal-body">
             <p>{comingSoon} are coming soon.</p>
             <p className="subtle-note">
-              {comingSoon === "Stories"
-                ? "Sharing photos and updates as stories will be available in a future release."
-                : "Voice and video calling will be available in a future release."}
+              Voice and video calling will be available in a future release.
             </p>
             <div className="form-actions">
               <Button onClick={() => setComingSoon(null)}>Got it</Button>

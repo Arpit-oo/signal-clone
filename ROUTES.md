@@ -11,10 +11,11 @@ The local frontend runs at **http://127.0.0.1:3010**. The backend runs at **http
 | `/chats` | Your conversation list and messenger. Anonymous users go to sign-in. |
 | `/chats/{conversationId}` | Open a specific conversation. Refresh and browser Back/Forward retain the selected chat. Only authorized members can open it. |
 | `/chats/{conversationId}?details=1` | Open a conversation with its details panel. |
+| `/stories` | Authenticated story feed, creation, and viewer. Share text/photo/video with selected people; posts expire after 24 hours. |
 
-Sign-in and signup accept an optional `next` parameter restricted to the chat routes above. For example, `/login?next=%2Fchats%2F12` returns to conversation 12 after sign-in and profile setup. Invalid page URLs show a page-not-found screen with links back to the product; inaccessible conversations show a recoverable error.
+Sign-in and signup accept an optional `next` parameter restricted to the chat routes above and `/stories`. For example, `/login?next=%2Fchats%2F12` returns to conversation 12 after sign-in and profile setup; `/login?next=%2Fstories` returns to Stories. Invalid page URLs show a page-not-found screen with links back to the product; inaccessible conversations show a recoverable error.
 
-Profile/settings, new conversations, groups, contact controls, and message actions are dialogs or panels within the messenger. They do not require separate page URLs. Calls and Stories are permitted placeholders under the project brief.
+Profile/settings, new conversations, groups, contact controls, message actions, and story creation/viewing are dialogs or panels within the messenger. They do not require separate page URLs. Voice/video calls and linked devices remain permitted placeholders under the project brief.
 
 Phone verification remains mocked: **123456**, with no SMS sent. This applies to both seeded and newly registered numbers. New users get their own empty account with Note to Self; existing sample conversations belong to the seeded users.
 
@@ -68,6 +69,12 @@ The endpoint inventory below is generated from the backend's OpenAPI schema. Aut
 | `PUT` | `/api/messages/{message_id}/reaction` | React |
 | `DELETE` | `/api/messages/{message_id}/reaction` | Unreact |
 | `GET` | `/api/search` | Search |
+| `GET` | `/api/stories` | Feed |
+| `POST` | `/api/stories` | Create |
+| `DELETE` | `/api/stories/{story_id}` | Remove |
+| `GET` | `/api/stories/{story_id}/media` | Media |
+| `POST` | `/api/stories/{story_id}/views` | Mark Viewed |
+| `GET` | `/api/stories/{story_id}/views` | Viewers |
 | `GET` | `/api/users/lookup` | Lookup User |
 | `GET` | `/api/users/search` | Search Users |
 | `GET` | `/api/users/{user_id}` | Get User |

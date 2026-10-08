@@ -2245,7 +2245,8 @@
     border-top: 1px solid var(--border-primary);
     padding: 9px 15px max(10px, env(safe-area-inset-bottom));
   }
-  .sidebar-mobile-tabs button {
+  .sidebar-mobile-tabs button,
+  .sidebar-mobile-tabs a {
     display: flex;
     flex-direction: column;
     align-items: center;

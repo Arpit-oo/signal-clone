@@ -172,7 +172,11 @@ export interface MessagePage {
 
 export interface MessageInfo {
   message: Message;
-  recipients: { user_id: number; delivered_at: string | null; read_at: string | null }[];
+  recipients: {
+    user_id: number;
+    delivered_at: string | null;
+    read_at: string | null;
+  }[];
 }
 
 export interface SearchResults {
@@ -188,30 +192,85 @@ export interface GroupInCommon {
   avatar_url: string | null;
 }
 
+export interface StoryMedia {
+  url: string;
+  mime_type: string;
+  size_bytes: number;
+  width: number | null;
+  height: number | null;
+}
+
+export interface Story {
+  id: number;
+  author: User;
+  kind: "text" | "image" | "video";
+  body: string;
+  color: string;
+  media: StoryMedia | null;
+  created_at: string;
+  expires_at: string;
+  is_own: boolean;
+  viewed_at: string | null;
+  view_count: number | null;
+  recipient_ids: number[] | null;
+}
+
+export interface StoryView {
+  user: User;
+  viewed_at: string;
+}
+
 /** Server → client WebSocket events. */
 export type ServerEvent =
+  | { type: "story.changed"; data: { story_id: number } }
   | { type: "message.new"; data: Message }
   | { type: "message.updated"; data: Message }
-  | { type: "message.hidden"; data: { message_id: number; conversation_id: number } }
-  | { type: "message.expired"; data: { conversation_id: number; message_ids: number[] } }
+  | {
+      type: "message.hidden";
+      data: { message_id: number; conversation_id: number };
+    }
+  | {
+      type: "message.expired";
+      data: { conversation_id: number; message_ids: number[] };
+    }
   | {
       type: "message.timer_started";
       data: { id: number; conversation_id: number; expires_at: string }[];
     }
   | {
       type: "reaction.updated";
-      data: { message_id: number; conversation_id: number; reactions: Reaction[] };
+      data: {
+        message_id: number;
+        conversation_id: number;
+        reactions: Reaction[];
+      };
     }
   | {
       type: "receipt.updated";
-      data: { message_id: number; conversation_id: number; status: MessageStatus }[];
+      data: {
+        message_id: number;
+        conversation_id: number;
+        status: MessageStatus;
+      }[];
     }
-  | { type: "typing"; data: { conversation_id: number; user_id: number; is_typing: boolean } }
-  | { type: "presence"; data: { user_id: number; online: boolean; last_seen_at: string | null } }
+  | {
+      type: "typing";
+      data: { conversation_id: number; user_id: number; is_typing: boolean };
+    }
+  | {
+      type: "presence";
+      data: { user_id: number; online: boolean; last_seen_at: string | null };
+    }
   | { type: "user.updated"; data: Partial<User> & { id: number } }
   | { type: "me.updated"; data: Me }
   | { type: "conversation.updated"; data: Conversation }
-  | { type: "conversation.read"; data: { conversation_id: number; last_read_message_id: number } }
+  | {
+      type: "conversation.read";
+      data: { conversation_id: number; last_read_message_id: number };
+    }
   | { type: "conversation.removed"; data: { conversation_id: number } }
-  | { type: "error"; data: { detail: string; event: string; ref: Record<string, unknown> } }
+  | {
+      type: "error";
+      data: { detail: string; event: string; ref: Record<string, unknown> };
+    }
   | { type: "pong"; data: null };

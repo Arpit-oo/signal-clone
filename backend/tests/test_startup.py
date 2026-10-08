@@ -259,4 +259,4 @@ connection.close()
         check=False,
     )
     assert result.returncode == 0, result.stderr
-    assert json.loads(result.stdout)["revision"] == "81fb290de613"
+    assert json.loads(result.stdout)["revision"] == "b38d41ac975e"

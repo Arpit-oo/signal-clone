@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import auth, conversations, files, me, messages, search, users
+from app.api.routes import auth, conversations, files, me, messages, search, stories, users
 from app.core.config import get_settings
 from app.db.migrations import initialize_database
 from app.ws import router as ws_router
@@ -44,7 +44,7 @@ def create_app() -> FastAPI:
     )
 
     api = APIRouter(prefix="/api")
-    for module in (auth, me, users, conversations, messages, files, search):
+    for module in (auth, me, users, conversations, messages, files, search, stories):
         api.include_router(module.router)
     app.include_router(api)
     app.include_router(ws_router.router)

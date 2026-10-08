@@ -38,6 +38,7 @@ const paths: Record<string, ReactNode> = {
   "chevron-down": <path d="m6 9 6 6 6-6" />,
   "chevron-up": <path d="m6 15 6-6 6 6" />,
   "chevron-right": <path d="m9 6 6 6-6 6" />,
+  "chevron-left": <path d="m15 6-6 6 6 6" />,
   reply: <path d="m9 5-7 6 7 6v-4c7 0 10 2 13 7-1-9-5-13-13-13V5Z" />,
   edit: (
     <>

@@ -4,6 +4,7 @@ export const routes = {
   login: "/login",
   signup: "/signup",
   chats: "/chats",
+  stories: "/stories",
 } as const;
 
 export function conversationRoute(id: number): string {
@@ -15,6 +16,7 @@ export function safeReturnPath(value?: string | string[]): string {
   if (
     typeof value === "string" &&
     (value === routes.chats ||
+      value === routes.stories ||
       /^\/chats\/[1-9]\d*(?:\?details=1)?$/.test(value))
   ) {
     return value;

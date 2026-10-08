@@ -42,6 +42,12 @@ Client IDs make message retries idempotent within the original sender's conversa
 
 Authentication uses a fixed mock OTP. Message contents and attachments are stored without Signal's end-to-end encryption. This is a local demonstration of messaging behavior.
 
+## Stories
+
+`GET /api/stories` returns active posts owned by the caller or explicitly shared with them. `POST /api/stories` accepts multipart fields `body`, `color` (hex), `recipient_ids` (JSON array), and optional `file`. Text-only posts require nonempty text; media supports verified JPEG/PNG/WebP/GIF images and MP4/WebM containers within the upload limit. Posts expire 24 hours after creation. The audience must contain registered, unblocked people other than the author.
+
+`POST /api/stories/{id}/views` records the first view idempotently. Authors use `GET /api/stories/{id}/views` to inspect permitted receipts and `DELETE /api/stories/{id}` to delete a post. `GET /api/stories/{id}/media` requires an authorized bearer token or the existing media token parameter. An expired post or a block in either direction prevents access. View identities follow read-receipt privacy. Story/audience/view relationships persist in SQLite; the sweeper removes expired records and media. WebSocket `story.changed` notifications tell eligible clients to refresh their feeds.
+
 ## Verify
 
 ```powershell

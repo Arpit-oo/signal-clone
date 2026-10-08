@@ -6,6 +6,7 @@ from app.core.config import get_settings
 from app.db.session import SessionLocal
 from app.services import conversations as conv_svc
 from app.services import messages as msg_svc
+from app.services import stories as story_svc
 from app.ws.manager import manager
 from app.ws.router import broadcast_typing
 from app.ws.typing import typing_registry
@@ -19,6 +20,7 @@ async def sweep_once() -> None:
         await broadcast_typing(conversation_id, user_id, False)
 
     async with SessionLocal() as db:
+        await story_svc.purge_expired(db)
         expired = await msg_svc.purge_expired(db)
         by_conv: dict[int, list[int]] = defaultdict(list)
         for message_id, conversation_id in expired:
@@ -32,7 +34,7 @@ async def sweep_once() -> None:
 
 
 async def run_sweeper() -> None:
-    """Expire typing indicators and disappearing messages."""
+    """Expire typing indicators, disappearing messages, and stories."""
     while True:
         try:
             await sweep_once()
