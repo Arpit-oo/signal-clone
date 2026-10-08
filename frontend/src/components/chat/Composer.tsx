@@ -640,76 +640,59 @@ export function Composer({
             </div>
           )}
         </div>
-        {recording ? (
-          <div className="chat-recording" role="status">
-            <span className="chat-recording-dot" />
-            <strong>Recording</strong>
-            <span>{formatDuration(recordedMs)}</span>
-            <button
-              className="chat-text-button"
-              onClick={() => endRecording(true)}
-            >
-              Cancel
-            </button>
-            <button
-              className="chat-icon-button"
-              aria-label="Finish recording"
-              onClick={() => endRecording()}
-            >
-              <Icon name="stop" size={23} />
-            </button>
-          </div>
-        ) : (
-          <textarea
-            ref={textarea}
-            value={body}
-            onChange={(event) => {
-              updateBody(event.target.value);
-              detectMention(event.target.value, event.target.selectionStart);
-            }}
-            onClick={(event) =>
-              detectMention(
-                event.currentTarget.value,
-                event.currentTarget.selectionStart,
-              )
-            }
-            onKeyDown={keyDown}
-            onPaste={paste}
-            aria-label={edit ? "Edit message" : "Message"}
-            placeholder={
-              edit
-                ? "Edit your message"
-                : conversation.type === "note_to_self"
-                  ? "Note to self"
-                  : "Message"
-            }
-            rows={1}
-            maxLength={8000}
-            spellCheck={spellCheck}
-            disabled={sending || requestingMic}
-          />
-        )}
+        <div className="chat-composer-input">
+          {recording ? (
+            <div className="chat-recording" role="status">
+              <span className="chat-recording-dot" />
+              <strong>Recording</strong>
+              <span>{formatDuration(recordedMs)}</span>
+              <button
+                className="chat-text-button"
+                onClick={() => endRecording(true)}
+              >
+                Cancel
+              </button>
+              <button
+                className="chat-icon-button"
+                aria-label="Finish recording"
+                onClick={() => endRecording()}
+              >
+                <Icon name="stop" size={23} />
+              </button>
+            </div>
+          ) : (
+            <textarea
+              ref={textarea}
+              value={body}
+              onChange={(event) => {
+                updateBody(event.target.value);
+                detectMention(event.target.value, event.target.selectionStart);
+              }}
+              onClick={(event) =>
+                detectMention(
+                  event.currentTarget.value,
+                  event.currentTarget.selectionStart,
+                )
+              }
+              onKeyDown={keyDown}
+              onPaste={paste}
+              aria-label={edit ? "Edit message" : "Message"}
+              placeholder={
+                edit
+                  ? "Edit your message"
+                  : conversation.type === "note_to_self"
+                    ? "Note to self"
+                    : "Message"
+              }
+              rows={1}
+              maxLength={8000}
+              spellCheck={spellCheck}
+              disabled={sending || requestingMic}
+            />
+          )}
+        </div>
         {!recording && (
           <>
-            {!edit && (
-              <>
-                <input
-                  ref={fileInput}
-                  type="file"
-                  multiple
-                  hidden
-                  onChange={pickFiles}
-                />
-                <button
-                  className="chat-icon-button"
-                  aria-label="Attach files"
-                  disabled={sending || requestingMic}
-                  onClick={() => fileInput.current?.click()}
-                >
-                  <Icon name="plus" size={23} />
-                </button>
-              </>
-            )}
             {canSend || edit ? (
               <button
                 className="chat-send-button"
@@ -729,10 +712,31 @@ export function Composer({
                 <Icon name="mic" size={23} />
               </button>
             )}
+            {!edit && (
+              <>
+                <input
+                  ref={fileInput}
+                  type="file"
+                  multiple
+                  hidden
+                  onChange={pickFiles}
+                />
+                <button
+                  className="chat-icon-button chat-attach-button"
+                  aria-label="Attach files"
+                  disabled={sending || requestingMic}
+                  onClick={() => fileInput.current?.click()}
+                >
+                  <Icon name="plus" size={23} />
+                </button>
+              </>
+            )}
           </>
         )}
       </div>
-      <div className="chat-composer-hint">
+      <div
+        className={`chat-composer-hint ${requestingMic || sending || recording || body.length > 7000 ? "is-active" : ""}`}
+      >
         {requestingMic
           ? "Waiting for microphone permission…"
           : sending

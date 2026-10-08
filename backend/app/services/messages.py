@@ -530,8 +530,10 @@ async def _notify_senders(db: AsyncSession, message_ids: set[int]) -> None:
         )
 
 
-async def mark_delivered(db: AsyncSession, me: User, message_ids: list[int] | None = None) -> None:
-    """Mark messages delivered to `me`. With no ids, flush everything pending (on connect)."""
+async def mark_delivered(db: AsyncSession, me: User, message_ids: list[int]) -> None:
+    """Acknowledge only the visible messages explicitly received by `me`."""
+    if not message_ids:
+        return
     query = (
         select(MessageReceipt.message_id)
         .join(Message, Message.id == MessageReceipt.message_id)
@@ -539,17 +541,20 @@ async def mark_delivered(db: AsyncSession, me: User, message_ids: list[int] | No
         .where(
             MessageReceipt.user_id == me.id,
             MessageReceipt.delivered_at.is_(None),
+            MessageReceipt.message_id.in_(message_ids),
             *visible_to(me.id),
         )
     )
-    if message_ids is not None:
-        query = query.where(MessageReceipt.message_id.in_(message_ids))
     pending = set(await db.scalars(query))
     if not pending:
         return
     await db.execute(
         update(MessageReceipt)
-        .where(MessageReceipt.user_id == me.id, MessageReceipt.message_id.in_(pending))
+        .where(
+            MessageReceipt.user_id == me.id,
+            MessageReceipt.message_id.in_(pending),
+            MessageReceipt.delivered_at.is_(None),
+        )
         .values(delivered_at=utcnow())
     )
     await db.commit()

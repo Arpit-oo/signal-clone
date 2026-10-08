@@ -36,6 +36,8 @@ You can also run `uv run python -m app.seed` to migrate and seed an empty databa
 
 REST routes use `/api` and bearer tokens from `POST /api/auth/verify`. The WebSocket endpoint is `/ws?token=...`; frames use `{"type": "message.send", "data": {...}}`. The server supports sending, acknowledgments, typing, presence, delivery/read receipts, reactions, edits, deletion, forwarding, group membership, disappearing messages, search, contacts, blocking, and profile/avatar updates. See the interactive docs for REST schemas and `app/ws/router.py` for event names.
 
+Clients acknowledge received messages with the WebSocket `receipt.delivered` event or `POST /api/messages/delivered`, using `{"message_ids": [1, 2]}`. Each request accepts at most 500 positive message IDs and updates only the authenticated recipient's visible messages. An empty list does nothing; opening a socket alone does not acknowledge pending messages. Reading a message also confirms delivery.
+
 Client IDs make message retries idempotent within the original sender's conversation. Timeline visibility also governs attachment downloads, reply previews, and WebSocket message updates. Newly added group members cannot access earlier history; removed members retain their earlier history. Clearing a chat or deleting a message locally hides its attachment for that user. A read cursor must reference a visible message in the same chat.
 
 Authentication uses a fixed mock OTP. Message contents and attachments are stored without Signal's end-to-end encryption. This is a local demonstration of messaging behavior.

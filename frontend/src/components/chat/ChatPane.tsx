@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { Avatar, Icon } from "@/components/ui";
+import { Avatar, Icon, Modal } from "@/components/ui";
 import { api } from "@/lib/api";
 import type { Attachment, ChatMessage, Message } from "@/lib/types";
 import { displayName, useChat } from "@/stores/chat";
@@ -217,6 +217,7 @@ function ConversationPane({
   const me = useSession((state) => state.me);
   const messages = bucket?.items ?? EMPTY_MESSAGES;
   const [searchOpen, setSearchOpen] = useState(false);
+  const [callType, setCallType] = useState<"voice" | "video" | null>(null);
   const [reply, setReply] = useState<ChatMessage | null>(null);
   const [edit, setEdit] = useState<ChatMessage | null>(null);
   const [dialog, setDialog] = useState<{
@@ -463,7 +464,7 @@ function ConversationPane({
   const online = presence?.online ?? conversation.peer?.is_online;
   const subtitle =
     conversation.type === "note_to_self"
-      ? "Your thoughts, always within reach"
+      ? "Messages you send to yourself"
       : conversation.type === "group"
         ? `${conversation.member_count} members`
         : online
@@ -489,18 +490,75 @@ function ConversationPane({
             name={conversation.name}
             color={conversation.avatar_color}
             url={conversation.avatar_url}
-            size={40}
+            size={32}
           />
           <span>
             <strong>{conversation.name}</strong>
             <small>
-              {typing.length > 0
-                ? `${typing.length === 1 && conversation.type === "group" ? `${displayName(users[typing[0]])} is ` : ""}typing…`
-                : subtitle}
+              <span className="chat-header-subtitle">
+                {typing.length > 0
+                  ? `${typing.length === 1 && conversation.type === "group" ? `${displayName(users[typing[0]])} is ` : ""}typing…`
+                  : subtitle}
+              </span>
+              {!!conversation.disappearing_seconds && typing.length === 0 && (
+                <span className="chat-mobile-timer">
+                  <Icon name="clock" size={12} />
+                  {timerLabel(conversation.disappearing_seconds)}
+                </span>
+              )}
             </small>
           </span>
         </button>
         <div className="chat-header-actions">
+          {conversation.type !== "note_to_self" && (
+            <>
+              <button
+                className="chat-icon-button chat-call-button"
+                aria-label="Video call"
+                aria-haspopup="dialog"
+                title="Video call · Coming Soon"
+                onClick={() => setCallType("video")}
+              >
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <rect x="3" y="5" width="13" height="14" rx="3" />
+                  <path d="m16 9 5-3v12l-5-3" />
+                </svg>
+              </button>
+              {conversation.type === "direct" && (
+                <button
+                  className="chat-icon-button chat-call-button"
+                  aria-label="Voice call"
+                  aria-haspopup="dialog"
+                  title="Voice call · Coming Soon"
+                  onClick={() => setCallType("voice")}
+                >
+                  <svg
+                    width="22"
+                    height="22"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="m5 3 4 5-2 3a14 14 0 0 0 6 6l3-2 5 4-2 3C9 22 2 15 2 5l3-2Z" />
+                  </svg>
+                </button>
+              )}
+            </>
+          )}
           {conversation.disappearing_seconds && (
             <button
               className="chat-icon-button chat-timer"
@@ -528,7 +586,7 @@ function ConversationPane({
             onClick={onDetails}
             aria-label="Conversation details"
           >
-            <Icon name="info" size={21} />
+            <Icon name="more" size={21} />
           </button>
         </div>
       </header>
@@ -623,13 +681,13 @@ function ConversationPane({
                     </div>
                     <h2>
                       {conversation.type === "note_to_self"
-                        ? "A little space for you"
-                        : "Start your conversation"}
+                        ? "Note to Self"
+                        : "No messages yet"}
                     </h2>
                     <p>
                       {conversation.type === "note_to_self"
-                        ? "Save a thought, a photo, or something for later."
-                        : `Say hello to ${conversation.name}. Send a message, share a photo, or record a voice note.`}
+                        ? "Send a message, photo, or file to save it here."
+                        : `Send the first message to ${conversation.name}.`}
                     </p>
                   </div>
                 )}
@@ -782,6 +840,26 @@ function ConversationPane({
       </div>
       {image && (
         <ImageDialog attachment={image} onClose={() => setImage(null)} />
+      )}
+      {callType && (
+        <Modal title="Coming Soon" onClose={() => setCallType(null)}>
+          <div className="chat-dialog-content chat-call-dialog">
+            <h3>{callType === "video" ? "Video calls" : "Voice calls"}</h3>
+            <p>
+              {callType === "video" ? "Video" : "Voice"} calling is not
+              available yet. You can send messages and voice notes in this
+              conversation.
+            </p>
+            <div className="chat-dialog-actions">
+              <button
+                className="chat-button chat-primary-button"
+                onClick={() => setCallType(null)}
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </Modal>
       )}
       {dialog?.type === "delete" && (
         <DeleteDialog

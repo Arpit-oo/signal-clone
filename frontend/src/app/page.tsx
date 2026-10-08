@@ -48,6 +48,11 @@ export default function Home() {
               <Link className="site-button site-button-white" href="/download">
                 Get Signal
               </Link>
+              <nav className="site-hero-links" aria-label="Start messaging">
+                <Link href="/chats">Open messenger</Link>
+                <Link href="/login">Sign in</Link>
+                <Link href="/signup">Create account</Link>
+              </nav>
             </div>
             <div className="site-phones">
               <img

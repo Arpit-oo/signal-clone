@@ -1,31 +1,3 @@
-@font-face {
-  font-family: "Signal Inter";
-  src: url("/signal/Inter-Regular.woff2") format("woff2");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Signal Inter";
-  src: url("/signal/Inter-SemiBold.woff2") format("woff2");
-  font-weight: 600;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Signal Inter";
-  src: url("/signal/Inter-Medium.woff2") format("woff2");
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Signal Inter";
-  src: url("/signal/Inter-ExtraBold.woff2") format("woff2");
-  font-weight: 800;
-  font-style: normal;
-  font-display: swap;
-}
 .signal-site {
   background: #fff;
   color: #1b1b1b;
@@ -119,6 +91,30 @@
 .site-language-button:hover {
   color: #2c6bed;
 }
+.site-product-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-left: 12px;
+  margin-left: 8px;
+  border-left: 1px solid #ebeaeb;
+}
+.site-product-links > a {
+  padding: 8px 10px;
+  color: #1b1b1b;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.site-product-links > .site-nav-signup {
+  color: #fff;
+  background: #2c6bed;
+  border-radius: 6px;
+}
+.site-product-links > .site-nav-signup:hover {
+  color: #fff;
+  background: #1851b4;
+}
 .site-menu-toggle {
   display: none;
 }
@@ -153,6 +149,22 @@
 }
 .site-hero-copy p {
   max-width: none;
+}
+.site-hero-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 20px;
+  margin-top: 12px;
+}
+.site-hero-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  color: #173d7c;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 .site-button {
   display: inline-flex;
@@ -330,6 +342,19 @@
 .site-copyright p + p {
   margin-top: 22px;
 }
+.site-footer-product {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  margin-top: 24px;
+}
+.site-footer-product a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
 .site-language-dialog {
   color: #1b1b1b;
   background: white;
@@ -408,6 +433,26 @@
   font-size: 14px;
   line-height: 22px;
 }
+.site-download-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+.site-download-actions .site-button {
+  margin-top: 0;
+}
+.signal-site .site-download-signin {
+  font-size: 16px;
+  line-height: 24px;
+  margin-top: 20px;
+}
+.site-download-signin a {
+  color: #173d7c;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
 .site-platform-links {
   display: flex;
   flex-wrap: wrap;
@@ -439,6 +484,11 @@
 @media (min-width: 1408px) {
   .site-container {
     max-width: 1344px;
+  }
+}
+@media (min-width: 1024px) and (max-width: 1407px) {
+  .site-nav > .site-reference-extra {
+    display: none;
   }
 }
 @media (max-width: 1023px) {
@@ -479,6 +529,8 @@
     background: #fff;
     padding: 8px 0;
     box-shadow: 0 8px 16px rgb(0 0 0 / 0.1);
+    max-height: calc(100dvh - 52px);
+    overflow-y: auto;
   }
   .site-nav.is-open {
     display: flex;
@@ -489,8 +541,29 @@
   .site-language-button {
     padding: 12px 24px;
   }
+  .site-product-links {
+    order: -1;
+    align-items: stretch;
+    flex-direction: column;
+    gap: 0;
+    padding: 0 0 8px;
+    margin: 0 0 8px;
+    border-left: 0;
+    border-bottom: 1px solid #ebeaeb;
+  }
+  .site-product-links > a {
+    padding: 12px 24px;
+    font-size: 16px;
+  }
+  .site-product-links > .site-nav-signup {
+    align-self: flex-start;
+    margin: 4px 24px;
+    padding: 10px 16px;
+  }
   .site-hero {
-    height: 760px;
+    height: auto;
+    min-height: 760px;
+    padding-bottom: 48px;
     margin-bottom: 0;
   }
   .site-hero-grid {
@@ -545,7 +618,7 @@
     line-height: 22px;
   }
   .site-hero {
-    height: 760px;
+    height: auto;
   }
   .site-hero-copy h1 {
     margin-bottom: 24px;

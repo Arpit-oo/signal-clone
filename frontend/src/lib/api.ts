@@ -176,6 +176,7 @@ export const api = {
     ) => post<Message>(`/conversations/${id}/messages`, data),
   },
   messages: {
+    delivered: (messageIds: number[]) => post<void>("/messages/delivered", { message_ids: messageIds }),
     info: (id: number) => get<MessageInfo>(`/messages/${id}/info`),
     edit: (id: number, body: string) => patch<Message>(`/messages/${id}`, { body }),
     remove: (id: number, scope: "me" | "everyone") => del<void>(`/messages/${id}${qs({ scope })}`),

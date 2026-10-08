@@ -107,7 +107,8 @@ def test_status_progression_via_receipts(alice, bob, client):
     msg = send(alice, cid, "hi")
     assert msg["status"] == "sent"
 
-    with bob.ws() as ws:  # connecting flushes pending deliveries
+    with bob.ws() as ws:
+        ws.send_json({"type": "receipt.delivered", "data": {"message_ids": [msg["id"]]}})
         ws.send_json({"type": "ping"})
         assert ws.receive_json()["type"] in ("pong", "presence")
     items = alice.get(f"/api/conversations/{cid}/messages").json()["items"]
@@ -151,6 +152,9 @@ def test_connect_does_not_deliver_hidden_history(alice, bob):
     bob.delete(f"/api/messages/{hidden['id']}", params={"scope": "me"})
     visible = send(alice, cid, "downloaded")
     with bob.ws() as ws:
+        ws.send_json(
+            {"type": "receipt.delivered", "data": {"message_ids": [hidden["id"], visible["id"]]}}
+        )
         ws.send_json({"type": "ping"})
         assert ws.receive_json()["type"] == "pong"
     assert alice.get(f"/api/messages/{hidden['id']}/info").json()["message"]["status"] == "sent"

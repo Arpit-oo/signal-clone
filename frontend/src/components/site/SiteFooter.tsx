@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 const groups = [
   {
     title: "Organization",
@@ -55,6 +57,11 @@ export default function SiteFooter() {
             For media inquiries, contact{" "}
             <a href="mailto:press@signal.org">press@signal.org</a>
           </p>
+          <nav className="site-footer-product" aria-label="Messenger links">
+            <Link href="/chats">Open messenger</Link>
+            <Link href="/login">Sign in</Link>
+            <Link href="/signup">Create account</Link>
+          </nav>
         </div>
         {groups.map((group) => (
           <div key={group.title}>

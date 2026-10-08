@@ -21,6 +21,7 @@ test("phone verification, two-user real-time delivery, reactions, replies, editi
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/login");
+  await page.getByRole("button", { name: "Alex Rivera", exact: true }).click();
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page.getByLabel("Verification code", { exact: true }).fill("000000");
   await page.getByRole("button", { name: "Verify and continue", exact: true }).click();
@@ -100,7 +101,7 @@ test("group creation, administrative details, appearance persistence and mobile 
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await page.setViewportSize({ width: 390, height: 844 });
-  await openChat(page, name);
+  await expect(page.getByRole("region", { name: `Conversation with ${name}`, exact: true })).toBeVisible();
   await expect(page.locator(".app-sidebar")).toBeHidden();
   await page.getByRole("button", { name: "Back to conversations", exact: true }).click();
   await expect(page.locator(".app-sidebar")).toBeVisible();

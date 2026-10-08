@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { api } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import { api, ApiError } from "@/lib/api";
 import type { Conversation, Message, SearchResults, User } from "@/lib/types";
 import { socket, type SocketStatus } from "@/lib/ws";
-import { useChat } from "@/stores/chat";
+import { sortConversations, useChat } from "@/stores/chat";
 import { useSession } from "@/stores/session";
 import { usePrefs } from "@/stores/prefs";
 import { ChatPane } from "@/components/chat/ChatPane";
@@ -17,6 +18,7 @@ import {
   ErrorText,
   Icon,
   IconButton,
+  Modal,
   Spinner,
   errorMessage,
   useNow,
@@ -53,11 +55,17 @@ function ConversationRow({
   selected,
   onSelect,
   onMenu,
+  onPin,
+  pinning,
+  pinDisabled,
 }: {
   conversation: Conversation;
   selected: boolean;
   onSelect: () => void;
   onMenu: (c: Conversation, anchor: HTMLElement) => void;
+  onPin: (c: Conversation) => void;
+  pinning: boolean;
+  pinDisabled: boolean;
 }) {
   const now = useNow();
   const meId = useSession((s) => s.me!.id);
@@ -69,7 +77,7 @@ function ConversationRow({
   const muted = !!c.muted_until && new Date(c.muted_until).getTime() > now;
   return (
     <div
-      className={`conversation-row ${selected ? "selected" : ""} ${unread ? "unread" : ""}`}
+      className={`conversation-row ${selected ? "selected" : ""} ${unread ? "unread" : ""} ${c.is_pinned ? "pinned" : ""}`}
     >
       <button
         className="conversation-select"
@@ -104,7 +112,6 @@ function ConversationRow({
             </span>
             <span className="conversation-badges">
               {muted && <Icon name="bell-off" size={14} />}{" "}
-              {c.is_pinned && <Icon name="pin" size={13} />}{" "}
               {unread && (
                 <span className={`unread-badge ${muted ? "muted" : ""}`}>
                   {c.mention_count ? "@" : c.unread_count || ""}
@@ -114,6 +121,25 @@ function ConversationRow({
           </span>
         </span>
       </button>
+      {!c.is_archived && (
+        <button
+          type="button"
+          className={`conversation-pin-trigger ${c.is_pinned ? "is-pinned" : ""}`}
+          aria-label={`${c.is_pinned ? "Unpin" : "Pin"} ${name}`}
+          aria-pressed={c.is_pinned}
+          title={
+            c.is_pinned ? "Unpin conversation" : "Pin conversation to the top"
+          }
+          disabled={pinDisabled}
+          onClick={() => onPin(c)}
+        >
+          {pinning ? (
+            <Spinner label="Saving pin" />
+          ) : (
+            <Icon name="pin" size={16} />
+          )}
+        </button>
+      )}
       <button
         className="conversation-menu-trigger"
         type="button"
@@ -265,17 +291,38 @@ function SearchPanel({
   );
 }
 
-export default function AppShell() {
+export default function AppShell({
+  initialConversationId,
+  initialDetails = false,
+}: { initialConversationId?: number; initialDetails?: boolean } = {}) {
+  const router = useRouter();
   const now = useNow();
   const me = useSession((s) => s.me)!;
   const conversations = useChat((s) => s.conversations);
   const loaded = useChat((s) => s.conversationsLoaded);
   const conversationsError = useChat((s) => s.conversationsError);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [details, setDetails] = useState(false);
+  const selectedId =
+    initialConversationId &&
+    Number.isSafeInteger(initialConversationId) &&
+    initialConversationId > 0
+      ? initialConversationId
+      : null;
+  const [routeResult, setRouteResult] = useState<{
+    id: number;
+    error: string;
+    inaccessible: boolean;
+  } | null>(null);
+  const [routeAttempt, setRouteAttempt] = useState(0);
+  const details = initialDetails;
   const [settings, setSettings] = useState(false);
   const [newChat, setNewChat] = useState(false);
-  const [filter, setFilter] = useState<"all" | "unread" | "archive">("all");
+  const [comingSoon, setComingSoon] = useState<"Stories" | "Calls" | null>(
+    null,
+  );
+  const [filter, setFilter] = useState<"all" | "unread" | "pinned" | "archive">(
+    () =>
+      selectedId && conversations[selectedId]?.is_archived ? "archive" : "all",
+  );
   const [query, setQuery] = useState("");
   const [search, setSearch] = useState<{
     query: string;
@@ -291,8 +338,49 @@ export default function AppShell() {
   const [searchAttempt, setSearchAttempt] = useState(0);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");
+  const [pinningId, setPinningId] = useState<number | null>(null);
+  const [statusMessage, setStatusMessage] = useState("");
   const [socketStatus, setSocketStatus] = useState<SocketStatus>(socket.status);
   const paneWidth = usePrefs((s) => s.leftPaneWidth);
+  useEffect(() => {
+    if (!selectedId || !loaded || conversationsError) return;
+    let active = true;
+    api.conversations
+      .get(selectedId)
+      .then((conversation) => {
+        if (!active) return;
+        useChat.getState().upsertConversation(conversation);
+        useChat.setState((state) => ({
+          details: { ...state.details, [conversation.id]: conversation },
+        }));
+        useChat
+          .getState()
+          .rememberUsers(conversation.members.map((member) => member.user));
+        setFilter(conversation.is_archived ? "archive" : "all");
+        setRouteResult({ id: selectedId, error: "", inaccessible: false });
+      })
+      .catch((cause) => {
+        if (!active) return;
+        const inaccessible =
+          cause instanceof ApiError &&
+          (cause.status === 403 || cause.status === 404);
+        setRouteResult({
+          id: selectedId,
+          error: inaccessible
+            ? "You may not have access to this conversation, or it may have been deleted."
+            : errorMessage(cause),
+          inaccessible,
+        });
+      });
+    return () => {
+      active = false;
+    };
+  }, [selectedId, loaded, conversationsError, routeAttempt, me.id]);
+  useEffect(() => {
+    if (!statusMessage) return;
+    const timer = setTimeout(() => setStatusMessage(""), 6000);
+    return () => clearTimeout(timer);
+  }, [statusMessage]);
   useEffect(() => socket.onStatus(setSocketStatus), []);
   useEffect(() => {
     if (!query.trim()) return;
@@ -348,30 +436,80 @@ export default function AppShell() {
     setActionError("");
     setMenu(conversation);
   }
-  const all = Object.values(conversations).sort(
-    (a, b) =>
-      Number(b.is_pinned) - Number(a.is_pinned) ||
-      new Date(b.last_activity_at).getTime() -
-        new Date(a.last_activity_at).getTime(),
-  );
+  const all = sortConversations(Object.values(conversations));
   const visible = all.filter((c) =>
     filter === "archive"
       ? c.is_archived
       : !c.is_archived &&
-        (filter !== "unread" || c.unread_count > 0 || c.marked_unread),
+        (filter !== "unread" || c.unread_count > 0 || c.marked_unread) &&
+        (filter !== "pinned" || c.is_pinned),
   );
   const archiveCount = all.filter((c) => c.is_archived).length;
   const unreadCount = all.filter(
     (c) => !c.is_archived && (c.unread_count || c.marked_unread),
   ).length;
-  const selected = selectedId ? conversations[selectedId] : null;
+  const pinnedCount = all.filter(
+    (conversation) => conversation.is_pinned && !conversation.is_archived,
+  ).length;
+  const hasConnections = all.some(
+    (conversation) => conversation.type !== "note_to_self",
+  );
+  const freshAccount = loaded && !hasConnections;
+  const routeError = routeResult?.id === selectedId ? routeResult.error : "";
+  const selected = selectedId && !routeError ? conversations[selectedId] : null;
   const select = (id: number) => {
-    setSelectedId(id);
-    setDetails(false);
+    if (!Number.isSafeInteger(id) || id <= 0) return;
     setQuery("");
     setMenu(null);
     setActionError("");
+    setStatusMessage("");
+    router.push(`/chats/${id}`, { scroll: false });
   };
+  function backToChats() {
+    setMenu(null);
+    setActionError("");
+    router.push("/chats", { scroll: false });
+  }
+  function showDetails(open: boolean) {
+    if (!selectedId) return;
+    router.replace(`/chats/${selectedId}${open ? "?details=1" : ""}`, {
+      scroll: false,
+    });
+  }
+  async function togglePin(conversation: Conversation) {
+    if (pinningId !== null || busy || conversation.is_archived) return;
+    setPinningId(conversation.id);
+    setActionError("");
+    try {
+      const updated = await api.conversations.settings(conversation.id, {
+        is_pinned: !conversation.is_pinned,
+      });
+      useChat.getState().upsertConversation(updated);
+      setStatusMessage(
+        updated.is_pinned
+          ? `${updated.name} is pinned to the top. Saved to your account.`
+          : `${updated.name} is unpinned. Saved to your account.`,
+      );
+    } catch (cause) {
+      setActionError(errorMessage(cause));
+    } finally {
+      setPinningId(null);
+    }
+  }
+  async function copyAddress() {
+    try {
+      await navigator.clipboard.writeText(
+        me.username ? `@${me.username}` : me.phone,
+      );
+      setStatusMessage(
+        "Your address was copied. Share it with someone you know.",
+      );
+    } catch {
+      setActionError(
+        "Couldn’t copy your address. Select your username or phone number to copy it.",
+      );
+    }
+  }
   async function person(user: User) {
     setBusy(true);
     setActionError("");
@@ -419,9 +557,14 @@ export default function AppShell() {
         .getState()
         .upsertConversation(await api.conversations.settings(menu.id, patch));
       if (patch.marked_unread && selectedId === menu.id) {
-        setSelectedId(null);
-        setDetails(false);
+        backToChats();
       }
+      if (patch.is_pinned !== undefined)
+        setStatusMessage(
+          patch.is_pinned
+            ? `${menu.name} is pinned to the top. Saved to your account.`
+            : `${menu.name} is unpinned. Saved to your account.`,
+        );
       setMenu(null);
     } catch (e) {
       setActionError(errorMessage(e));
@@ -462,7 +605,7 @@ export default function AppShell() {
   }
   return (
     <main
-      className={`app-shell ${selected ? "has-conversation" : ""} ${details ? "has-details" : ""}`}
+      className={`app-shell ${selectedId ? "has-conversation" : ""} ${details ? "has-details" : ""}`}
       style={
         {
           "--sidebar-width": `${Math.min(440, Math.max(300, paneWidth + 24))}px`,
@@ -470,9 +613,26 @@ export default function AppShell() {
       }
     >
       <nav className="app-rail" aria-label="Main navigation">
-        <span className="signal-mark rail-brand">
-          <Icon name="chat" size={24} />
-        </span>
+        <button
+          type="button"
+          className="rail-button rail-top-menu"
+          title="Open settings"
+          aria-label="Main menu"
+          onClick={() => setSettings(true)}
+        >
+          <svg
+            width="23"
+            height="23"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            aria-hidden="true"
+          >
+            <path d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
         <button
           type="button"
           className={`rail-button ${filter !== "archive" ? "active" : ""}`}
@@ -480,12 +640,53 @@ export default function AppShell() {
           aria-label="Conversations"
           onClick={() => {
             setFilter("all");
-            setSelectedId(null);
-            setDetails(false);
+            setQuery("");
           }}
         >
           <Icon name="chat" size={22} />
           {unreadCount > 0 && <span className="rail-dot" />}
+        </button>
+        <button
+          type="button"
+          className="rail-button"
+          title="Calls · Coming soon"
+          aria-label="Calls · Coming soon"
+          onClick={() => setComingSoon("Calls")}
+        >
+          <svg
+            width="23"
+            height="23"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M7 3 4 4C1 6 5 13 8 16s10 7 12 4l1-3-5-3-2 2c-3-1-5-3-6-6l2-2-3-5Z" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          className="rail-button"
+          title="Stories · Coming soon"
+          aria-label="Stories · Coming soon"
+          onClick={() => setComingSoon("Stories")}
+        >
+          <svg
+            width="23"
+            height="23"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <rect x="8" y="3" width="12" height="18" rx="3" />
+            <path d="m6 5-2 1c-1 .3-1.5 1.3-1.2 2.4l2.8 10" />
+          </svg>
         </button>
         <button
           type="button"
@@ -494,8 +695,7 @@ export default function AppShell() {
           aria-label="Archived conversations"
           onClick={() => {
             setFilter("archive");
-            setSelectedId(null);
-            setDetails(false);
+            setQuery("");
           }}
         >
           <Icon name="archive" size={22} />
@@ -527,25 +727,31 @@ export default function AppShell() {
       </nav>
       <aside className="app-sidebar">
         <header className="sidebar-header">
-          <div>
-            <h1>{filter === "archive" ? "Archived" : "Chats"}</h1>
-            <span className="sidebar-greeting">
-              {filter === "archive"
-                ? "A little quieter here"
-                : `Good to see you, ${me.display_name.split(" ")[0]}`}
-            </span>
-          </div>
-          <div className="sidebar-header-actions">
-            <IconButton
-              name="settings"
-              label="Open settings"
-              className="mobile-settings"
-              onClick={() => setSettings(true)}
+          <button
+            type="button"
+            className="sidebar-mobile-profile"
+            aria-label="Your profile"
+            onClick={() => setSettings(true)}
+          >
+            <Avatar
+              name={me.display_name}
+              color={me.avatar_color}
+              url={me.avatar_url}
+              size={32}
             />
+          </button>
+          <h1>{filter === "archive" ? "Archived" : "Chats"}</h1>
+          <div className="sidebar-header-actions">
             <IconButton
               name="compose"
               label="New conversation"
               onClick={() => setNewChat(true)}
+            />
+            <IconButton
+              name="more"
+              label="Open settings"
+              className="sidebar-desktop-settings"
+              onClick={() => setSettings(true)}
             />
           </div>
         </header>
@@ -571,6 +777,17 @@ export default function AppShell() {
             )}
           </label>
           <div className="sidebar-filters">
+            <button
+              type="button"
+              className={filter === "pinned" ? "selected" : ""}
+              aria-pressed={filter === "pinned"}
+              onClick={() => {
+                setFilter("pinned");
+                setQuery("");
+              }}
+            >
+              Pinned{pinnedCount > 0 && <span>{pinnedCount}</span>}
+            </button>
             <button
               type="button"
               className={filter === "all" ? "selected" : ""}
@@ -669,16 +886,22 @@ export default function AppShell() {
             visible.map((c, index) => (
               <div key={c.id}>
                 {c.is_pinned && !visible[index - 1]?.is_pinned && (
-                  <p className="section-label conversation-section">PINNED</p>
+                  <p className="section-label conversation-section">Pinned</p>
                 )}
-                {!c.is_pinned && visible[index - 1]?.is_pinned && (
-                  <p className="section-label conversation-section">RECENT</p>
-                )}
+                {!c.is_pinned &&
+                  (visible[index - 1]?.is_pinned || index === 0) && (
+                    <p className="section-label conversation-section">
+                      {filter === "archive" ? "Archived chats" : "Chats"}
+                    </p>
+                  )}
                 <ConversationRow
                   conversation={c}
                   selected={c.id === selectedId}
                   onSelect={() => select(c.id)}
                   onMenu={openMenu}
+                  onPin={(conversation) => void togglePin(conversation)}
+                  pinning={pinningId === c.id}
+                  pinDisabled={pinningId !== null || busy}
                 />
               </div>
             ))
@@ -693,12 +916,16 @@ export default function AppShell() {
                   ? "You’re all caught up"
                   : filter === "archive"
                     ? "No archived conversations"
-                    : "Your conversations start here"}
+                    : filter === "pinned"
+                      ? "No pinned conversations"
+                      : "No conversations yet"}
               </p>
               <small>
                 {filter === "unread"
                   ? "New messages will appear here."
-                  : "Start a conversation with someone you know."}
+                  : filter === "pinned"
+                    ? "Use the pin on a chat to keep it at the top."
+                    : "Find someone by their phone number or username."}
               </small>
               {filter === "all" && (
                 <Button variant="secondary" onClick={() => setNewChat(true)}>
@@ -708,56 +935,131 @@ export default function AppShell() {
             </div>
           )}
           <ErrorText>{actionError}</ErrorText>
+          {freshAccount && !query.trim() && filter === "all" && (
+            <div className="first-chat-card">
+              <strong>Find someone you know</strong>
+              <p>Enter their phone number or username to start a chat.</p>
+              <Button variant="secondary" onClick={() => setNewChat(true)}>
+                <Icon name="compose" size={17} />
+                Find a person
+              </Button>
+              <div className="your-chat-address">
+                <span>
+                  Your address{" "}
+                  <strong>{me.username ? `@${me.username}` : me.phone}</strong>
+                </span>
+                <IconButton
+                  name="copy"
+                  label="Copy your address"
+                  onClick={() => void copyAddress()}
+                />
+              </div>
+            </div>
+          )}
         </div>
-        <footer className="sidebar-footer">
-          <Icon name="lock" size={13} />
-          <span>Your local space to stay connected</span>
-          <span
-            className="sidebar-status-dot"
-            data-online={socketStatus === "open"}
-          />
-        </footer>
+        {statusMessage && (
+          <p className="sidebar-feedback" role="status">
+            <Icon name="check" size={15} />
+            {statusMessage}
+          </p>
+        )}
+        <nav className="sidebar-mobile-tabs" aria-label="Mobile navigation">
+          <button
+            type="button"
+            aria-current="page"
+            onClick={() => {
+              setFilter("all");
+              setQuery("");
+            }}
+          >
+            <span>
+              <Icon name="chat" size={24} />
+              {unreadCount > 0 && <i>{unreadCount}</i>}
+            </span>
+            Chats
+          </button>
+          <button
+            type="button"
+            aria-label="Stories · Coming soon"
+            onClick={() => setComingSoon("Stories")}
+          >
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <rect x="8" y="3" width="12" height="18" rx="3" />
+              <path d="m6 5-2 1c-1 .3-1.5 1.3-1.2 2.4l2.8 10" />
+            </svg>
+            Stories
+          </button>
+        </nav>
       </aside>
       <section className="app-conversation" aria-label="Messages">
         {selected ? (
           <ChatPane
             key={selected.id}
             conversationId={selected.id}
-            onBack={() => {
-              setSelectedId(null);
-              setDetails(false);
-            }}
-            onDetails={() => setDetails((prev) => !prev)}
+            onBack={backToChats}
+            onDetails={() => showDetails(!details)}
           />
+        ) : selectedId ? (
+          <div className="conversation-route-state" role="status">
+            {routeError || conversationsError ? (
+              <>
+                <Icon name="chat" size={40} />
+                <h2>
+                  {routeResult?.id === selectedId && routeResult.inaccessible
+                    ? "Conversation unavailable"
+                    : "Couldn’t open conversation"}
+                </h2>
+                <p>{routeError || conversationsError}</p>
+                <div className="form-actions">
+                  <Button variant="secondary" onClick={backToChats}>
+                    Back to chats
+                  </Button>
+                  {!routeResult?.inaccessible && (
+                    <Button
+                      onClick={() => {
+                        setRouteResult(null);
+                        if (conversationsError)
+                          void useChat.getState().loadConversations();
+                        else setRouteAttempt((attempt) => attempt + 1);
+                      }}
+                    >
+                      Retry
+                    </Button>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <Spinner label="Opening conversation" />
+                <p>Opening conversation…</p>
+                <Button variant="secondary" onClick={backToChats}>
+                  Back to chats
+                </Button>
+              </>
+            )}
+          </div>
         ) : (
           <div className="welcome-pane">
-            <div className="welcome-illustration">
-              <div className="welcome-ring" />
-              <span className="signal-mark welcome-mark">
-                <Icon name="chat" size={54} />
-              </span>
-              <span className="welcome-small-bubble">
-                <Icon name="smile" size={26} />
-              </span>
-              <span className="welcome-spark">✦</span>
-            </div>
-            <span className="welcome-eyebrow">
-              MAKE TIME FOR A CONVERSATION
-            </span>
-            <h2>A hello goes a long way.</h2>
+            <Icon name="chat" size={58} />
+            <h2>{freshAccount ? "Start a conversation" : "Select a chat"}</h2>
             <p>
-              Select a chat to pick up where you left off,
-              <br />
-              or start a new conversation.
+              {freshAccount
+                ? "Find someone using their phone number or username."
+                : "Choose a conversation from your chat list."}
             </p>
             <Button onClick={() => setNewChat(true)}>
               <Icon name="compose" size={18} />
               New conversation
             </Button>
-            <div className="welcome-local">
-              <Icon name="shield" size={16} />
-              Signal-inspired. Made for your local workspace.
-            </div>
           </div>
         )}
       </section>
@@ -765,11 +1067,8 @@ export default function AppShell() {
         <ConversationDetails
           key={selected.id}
           conversationId={selected.id}
-          onClose={() => setDetails(false)}
-          onRemoved={() => {
-            setSelectedId(null);
-            setDetails(false);
-          }}
+          onClose={() => showDetails(false)}
+          onRemoved={backToChats}
         />
       )}{" "}
       {newChat && (
@@ -784,6 +1083,21 @@ export default function AppShell() {
         />
       )}{" "}
       {settings && <Settings onClose={() => setSettings(false)} />}
+      {comingSoon && (
+        <Modal title={comingSoon} onClose={() => setComingSoon(null)}>
+          <div className="ui-modal-body">
+            <p>{comingSoon} are coming soon.</p>
+            <p className="subtle-note">
+              {comingSoon === "Stories"
+                ? "Sharing photos and updates as stories will be available in a future release."
+                : "Voice and video calling will be available in a future release."}
+            </p>
+            <div className="form-actions">
+              <Button onClick={() => setComingSoon(null)}>Got it</Button>
+            </div>
+          </div>
+        </Modal>
+      )}
       {menu && (
         <>
           <button
@@ -883,8 +1197,9 @@ export default function AppShell() {
               type="button"
               disabled={busy}
               onClick={() => {
-                select(menu.id);
-                setDetails(true);
+                setMenu(null);
+                setQuery("");
+                router.push(`/chats/${menu.id}?details=1`, { scroll: false });
               }}
             >
               <Icon name="info" size={17} />

@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, PositiveInt
 
 MessageStatus = Literal["sent", "delivered", "read"]
 
@@ -85,6 +85,10 @@ class ForwardRequest(BaseModel):
 
 class ReadRequest(BaseModel):
     up_to_id: int = Field(ge=1)
+
+
+class DeliveredRequest(BaseModel):
+    message_ids: list[PositiveInt] = Field(max_length=500)
 
 
 class RecipientStatus(BaseModel):

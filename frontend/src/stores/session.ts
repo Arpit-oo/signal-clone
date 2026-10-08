@@ -3,6 +3,7 @@ import { create } from "zustand";
 import { api, ApiError, getToken, setToken, setUnauthorizedHandler } from "@/lib/api";
 import type { Me } from "@/lib/types";
 import { socket } from "@/lib/ws";
+import { routes } from "@/lib/routes";
 
 type Status = "loading" | "anonymous" | "authenticated" | "unavailable";
 
@@ -13,7 +14,7 @@ interface SessionState {
   restore: () => Promise<void>;
   signIn: (token: string, me: Me) => void;
   setMe: (me: Me) => void;
-  signOut: () => void;
+  signOut: (destination?: "login" | "signup") => void;
 }
 
 export const useSession = create<SessionState>()((set, get) => ({
@@ -51,12 +52,12 @@ export const useSession = create<SessionState>()((set, get) => ({
 
   setMe: (me) => set({ me }),
 
-  signOut: () => {
+  signOut: (destination = "login") => {
     socket.disconnect();
     setToken(null);
     set({ me: null, status: "anonymous" });
     // Reset in-memory chat state by reloading; it also clears any cached media URLs.
-    window.location.reload();
+    window.location.replace(routes[destination]);
   },
 }));
 

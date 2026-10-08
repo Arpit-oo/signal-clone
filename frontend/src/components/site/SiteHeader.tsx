@@ -12,6 +12,12 @@ const links = [
   ["Donate", "https://signal.org/donate/"],
 ] as const;
 
+const messengerLinks = [
+  ["Open messenger", "/chats"],
+  ["Sign in", "/login"],
+  ["Create account", "/signup"],
+] as const;
+
 const languages = [
   ["Afrikaans", "af"],
   ["العربية", "ar"],
@@ -133,16 +139,37 @@ export default function SiteHeader() {
                 <Link
                   key={label}
                   href={href}
+                  className="site-reference-link"
                   onClick={() => setMenuOpen(false)}
                 >
                   {label}
                 </Link>
               ) : (
-                <a key={label} href={href}>
+                <a
+                  key={label}
+                  href={href}
+                  className={
+                    label === "Developers" || label === "Careers"
+                      ? "site-reference-link site-reference-extra"
+                      : "site-reference-link"
+                  }
+                >
                   {label}
                 </a>
               ),
             )}
+            <div className="site-product-links">
+              {messengerLinks.map(([label, href]) => (
+                <Link
+                  key={href}
+                  href={href}
+                  className={href === "/signup" ? "site-nav-signup" : undefined}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  {label}
+                </Link>
+              ))}
+            </div>
             <button
               ref={languageButton}
               className="site-language-button"

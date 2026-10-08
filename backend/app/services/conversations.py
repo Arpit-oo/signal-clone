@@ -4,6 +4,7 @@ from datetime import timedelta
 from typing import Any
 
 from sqlalchemy import and_, exists, func, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased, selectinload
 
@@ -16,6 +17,7 @@ from app.models import (
     MessageMention,
     User,
 )
+from app.models.conversation import direct_identity_key, note_identity_key
 from app.schemas.conversation import (
     ConversationCreate,
     ConversationDetail,
@@ -94,34 +96,62 @@ async def peer_user_ids(db: AsyncSession, user_id: int) -> set[int]:
 
 
 async def find_direct(db: AsyncSession, a: int, b: int) -> Conversation | None:
+    canonical = await db.scalar(
+        select(Conversation).where(Conversation.identity_key == direct_identity_key(a, b))
+    )
+    if canonical is not None:
+        return canonical
     m1, m2 = aliased(ConversationMember), aliased(ConversationMember)
     return await db.scalar(
         select(Conversation)
         .join(m1, and_(m1.conversation_id == Conversation.id, m1.user_id == a))
         .join(m2, and_(m2.conversation_id == Conversation.id, m2.user_id == b))
         .where(Conversation.type == "direct")
+        .order_by(Conversation.id)
+        .limit(1)
     )
 
 
 async def get_or_create_note_to_self(db: AsyncSession, user: User) -> Conversation:
+    user_id = user.id
+    identity_key = note_identity_key(user_id)
     conv = await db.scalar(
         select(Conversation)
         .join(ConversationMember)
-        .where(Conversation.type == "note_to_self", ConversationMember.user_id == user.id)
+        .where(Conversation.type == "note_to_self", ConversationMember.user_id == user_id)
+        .order_by(Conversation.identity_key.is_(None), Conversation.id)
+        .limit(1)
     )
     if conv:
         return conv
-    conv = Conversation(type="note_to_self", created_by=user.id, avatar_color=user.avatar_color)
-    conv.members.append(ConversationMember(user_id=user.id, role="admin"))
+    conv = Conversation(
+        type="note_to_self",
+        identity_key=identity_key,
+        created_by=user_id,
+        avatar_color=user.avatar_color,
+    )
+    conv.members.append(ConversationMember(user_id=user_id, role="admin"))
     db.add(conv)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        existing = await db.scalar(
+            select(Conversation).where(Conversation.identity_key == identity_key)
+        )
+        if existing is None:
+            raise
+        # Rollback expires persistent objects, including the auth response's user.
+        await db.refresh(user)
+        return existing
     return conv
 
 
 async def get_or_create_direct(
     db: AsyncSession, me: User, other_id: int
 ) -> tuple[Conversation, bool]:
-    if other_id == me.id:
+    user_id = me.id
+    if other_id == user_id:
         conv = await get_or_create_note_to_self(db, me)
         await db.execute(
             update(ConversationMember)
@@ -135,7 +165,7 @@ async def get_or_create_direct(
     other = await db.get(User, other_id)
     if other is None:
         raise not_found("User")
-    existing = await find_direct(db, me.id, other_id)
+    existing = await find_direct(db, user_id, other_id)
     if existing:
         # Re-opening a chat you deleted brings it back to your list.
         await db.execute(
@@ -148,10 +178,29 @@ async def get_or_create_direct(
         )
         await db.commit()
         return existing, False
-    conv = Conversation(type="direct", created_by=me.id)
-    conv.members.extend([ConversationMember(user_id=me.id), ConversationMember(user_id=other_id)])
+    conv = Conversation(
+        type="direct", identity_key=direct_identity_key(user_id, other_id), created_by=user_id
+    )
+    conv.members.extend([ConversationMember(user_id=user_id), ConversationMember(user_id=other_id)])
     db.add(conv)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        existing = await find_direct(db, user_id, other_id)
+        if existing is None:
+            raise
+        await db.refresh(me)
+        await db.execute(
+            update(ConversationMember)
+            .where(
+                ConversationMember.conversation_id == existing.id,
+                ConversationMember.user_id == user_id,
+            )
+            .values(is_hidden=False)
+        )
+        await db.commit()
+        return existing, False
     return conv, True
 
 

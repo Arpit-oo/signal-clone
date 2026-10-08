@@ -12,7 +12,7 @@ cd F:\signal-clone
 .\scripts\start.ps1
 ```
 
-Open **http://127.0.0.1:3000** for the homepage. Select **Get Signal → Open web messenger**, or visit **http://127.0.0.1:3000/chats** directly. Choose Alex, Priya, or Marcus on the login screen, continue, and enter the displayed demo code **123456**. Use another browser profile or private window to sign in as a second person and exchange messages in real time.
+Open **http://127.0.0.1:3000** for the homepage. Use **Open messenger**, **Sign in**, or **Create account** in the navigation, or visit **http://127.0.0.1:3000/chats** directly. Choose Alex, Priya, or Marcus on the login screen, continue, and enter the displayed verification code **123456**. Use another browser profile or private window to sign in as a second person and exchange messages in real time.
 
 | Account | Phone |
 | --- | --- |
@@ -20,7 +20,9 @@ Open **http://127.0.0.1:3000** for the homepage. Select **Get Signal → Open we
 | Priya Sharma | +15550000002 |
 | Marcus Chen | +15550000003 |
 
-A new phone number opens profile setup and creates a Note to Self conversation. Search registered people by name, username, or phone to start a chat.
+At `/signup`, use your own phone number with its country code, enter the displayed simulated verification code, and set your name, optional username, and photo. A new account starts with Note to Self and its own contacts and conversations. Search registered people by name, or use the exact phone/username lookup in New conversation. Pin chats from their row, menu, or details panel; pins belong to your account and survive reloads. Signed-in users visiting signup can choose **Use another number**.
+
+All page URLs, navigation behavior, and the complete backend endpoint inventory are listed in [ROUTES.md](ROUTES.md). Individual conversations have `/chats/{id}` URLs; details use `?details=1`. Refresh and browser Back/Forward retain the selected conversation.
 
 ```powershell
 .\scripts\stop.ps1
@@ -36,7 +38,7 @@ If PowerShell policy prevents local scripts, use `powershell -NoProfile -Executi
 - Reference homepage at `/`, responsive navigation, keyboard-accessible language selector, local fonts/images, real official support/donation/download links, and a local messenger entry at `/download`.
 - Phone verification, persistent login, new-account onboarding, profile names/usernames/about text, avatar uploads and colors.
 - Direct and group conversations, contacts and nicknames, blocking, group photos/descriptions, adding/removing members, admin roles, and leaving groups.
-- Real-time messages, typing and presence, optimistic sends, failed-send retry, reconnect recovery, delivery and read receipts.
+- Real-time messages, typing and presence, optimistic sends, failed-send retry, reconnect recovery, and delivery/read receipts. Delivery acknowledges messages actually received through socket events or fetched history; opening a socket alone does not mark pending messages delivered.
 - Replies, reactions, editing, forwarding, message information, deletion for yourself or everyone, pagination and search.
 - Images, videos, audio, downloadable files, and microphone voice notes with preview. Microphone access requires browser permission.
 - Pinning, archiving, muting, unread filters, Note to Self, and disappearing-message timers.
@@ -62,7 +64,7 @@ Setup creates an ignored `backend/.env` with a random JWT secret, automatic migr
 
 `API_ORIGIN` is the frontend server's REST/media proxy target. `NEXT_PUBLIC_WS_URL` is the browser's WebSocket base URL (without `/ws`). Changing browser-facing variables requires rebuilding production assets. Examples and backend settings are documented in [backend/README.md](backend/README.md) and [frontend/README.md](frontend/README.md).
 
-The messenger uses local SVG icons, system fonts, and generated seed images. The homepage serves its reference artwork and Inter fonts from `frontend/public/signal/`; attribution is documented there. It needs no third-party image/font services to build or render. Homepage copy describes the official Signal product; the local demo’s limitations are stated on its entry and login screens.
+The messenger uses local SVG icons, Inter fonts with system fallbacks, and generated seed images. The user-provided official desktop/mobile screens guide the layout, and the official [Signal Desktop](https://github.com/signalapp/Signal-Desktop) and [Signal Server](https://github.com/signalapp/Signal-Server) repositories were consulted for interaction and acknowledgement behavior. Application code remains an independent Next.js/FastAPI implementation. The homepage serves its reference artwork and Inter fonts from `frontend/public/signal/`; attribution is documented there. It needs no third-party image/font services to build or render. Homepage copy describes the official Signal product; the local messenger’s limitations are stated on its entry and login screens.
 
 ## Verification
 

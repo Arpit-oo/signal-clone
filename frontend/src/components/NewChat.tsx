@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import { useEffect, useRef, useState } from "react";
+import { api, ApiError } from "@/lib/api";
 import type { ConversationDetail, User } from "@/lib/types";
 import { useChat } from "@/stores/chat";
+import { useSession } from "@/stores/session";
 import {
   Avatar,
   Button,
@@ -29,6 +30,14 @@ export default function NewChat({
     addToGroup ? "group" : "direct",
   );
   const [query, setQuery] = useState("");
+  const meId = useSession((state) => state.me?.id);
+  const [lookupMode, setLookupMode] = useState<"search" | "phone" | "username">(
+    "search",
+  );
+  const [lookupResult, setLookupResult] = useState<User | null>(null);
+  const [lookupError, setLookupError] = useState("");
+  const [lookupPending, setLookupPending] = useState(false);
+  const lookupRequest = useRef(0);
   const [contacts, setContacts] = useState<User[]>([]);
   const [search, setSearch] = useState<{
     query: string;
@@ -66,7 +75,7 @@ export default function NewChat({
   }, [contactsAttempt]);
   useEffect(() => {
     const needle = query.trim();
-    if (!needle) return;
+    if (!needle || lookupMode !== "search") return;
     let active = true;
     const timer = setTimeout(() => {
       api.users
@@ -86,17 +95,97 @@ export default function NewChat({
       active = false;
       clearTimeout(timer);
     };
-  }, [query, searchAttempt]);
+  }, [query, searchAttempt, lookupMode]);
   const needle = query.trim();
-  const peopleLoading = needle ? search.query !== needle : loading;
-  const peopleError = needle
-    ? search.query === needle
-      ? search.error
-      : ""
-    : contactsError;
-  const users = (needle ? search.items : contacts).filter(
-    (user) => !excludedIds.includes(user.id) && !user.is_blocked,
+  const peopleLoading =
+    lookupMode !== "search"
+      ? lookupPending
+      : needle
+        ? search.query !== needle
+        : loading;
+  const peopleError =
+    lookupMode !== "search"
+      ? lookupError
+      : needle
+        ? search.query === needle
+          ? search.error
+          : ""
+        : contactsError;
+  const users = (
+    lookupMode !== "search"
+      ? lookupResult
+        ? [lookupResult]
+        : []
+      : needle
+        ? search.items
+        : contacts
+  ).filter(
+    (user) =>
+      user.id !== meId && !excludedIds.includes(user.id) && !user.is_blocked,
   );
+  function changeLookup(next: "search" | "phone" | "username") {
+    lookupRequest.current += 1;
+    setLookupMode(next);
+    setQuery("");
+    setLookupResult(null);
+    setLookupError("");
+    setLookupPending(false);
+    setError("");
+  }
+  async function findExact() {
+    if (lookupMode === "search" || lookupPending) return;
+    const address =
+      lookupMode === "phone"
+        ? needle.replace(/[\s().-]/g, "")
+        : needle.replace(/^@/, "").toLowerCase();
+    if (
+      lookupMode === "phone"
+        ? !/^\+?[1-9]\d{6,14}$/.test(address)
+        : !/^[a-z][a-z0-9_]{2,31}$/.test(address)
+    ) {
+      setLookupError(
+        lookupMode === "phone"
+          ? "Enter a full phone number including the country code, for example +14155550123."
+          : "Enter a username with 3–32 letters, numbers or underscores, starting with a letter.",
+      );
+      return;
+    }
+    const request = ++lookupRequest.current;
+    setLookupPending(true);
+    setLookupError("");
+    setLookupResult(null);
+    try {
+      const user = await api.users.lookup(
+        lookupMode === "phone"
+          ? { phone: address.startsWith("+") ? address : `+${address}` }
+          : { username: address },
+      );
+      if (request !== lookupRequest.current) return;
+      if (user.id === meId)
+        setLookupError(
+          "This is your account. Use Note to Self in your chat list.",
+        );
+      else if (excludedIds.includes(user.id))
+        setLookupError("This person already belongs to the group.");
+      else if (user.is_blocked)
+        setLookupError(
+          "Unblock this person in Settings before starting a conversation.",
+        );
+      else {
+        setLookupResult(user);
+        useChat.getState().rememberUsers([user]);
+      }
+    } catch (cause) {
+      if (request === lookupRequest.current)
+        setLookupError(
+          cause instanceof ApiError && cause.status === 404
+            ? `No registered account has that ${lookupMode === "phone" ? "phone number" : "username"}. Ask them to create an account, then try again.`
+            : errorMessage(cause),
+        );
+    } finally {
+      if (request === lookupRequest.current) setLookupPending(false);
+    }
+  }
   async function direct(user: User) {
     setBusy(true);
     setError("");
@@ -231,31 +320,99 @@ export default function NewChat({
             ))}
           </div>
         )}
-        <label className="search-field">
-          <Icon name="search" size={19} />
-          <input
-            placeholder="Name, username or phone number"
-            aria-label="Find a person"
-            maxLength={64}
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setError("");
-            }}
+        <div className="new-chat-lookup-tabs" aria-label="Find people by">
+          <button
+            type="button"
             disabled={busy}
-          />
-          {query && (
-            <button
-              type="button"
-              aria-label="Clear search"
-              onClick={() => setQuery("")}
-            >
-              <Icon name="close" size={16} />
-            </button>
+            aria-pressed={lookupMode === "search"}
+            onClick={() => changeLookup("search")}
+          >
+            Search
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            aria-pressed={lookupMode === "phone"}
+            onClick={() => changeLookup("phone")}
+          >
+            Phone number
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            aria-pressed={lookupMode === "username"}
+            onClick={() => changeLookup("username")}
+          >
+            Username
+          </button>
+        </div>
+        <form
+          className="new-chat-lookup-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void findExact();
+          }}
+        >
+          <label className="search-field">
+            <Icon name="search" size={19} />
+            <input
+              placeholder={
+                lookupMode === "phone"
+                  ? "Phone number with country code"
+                  : lookupMode === "username"
+                    ? "Exact username, e.g. @alex"
+                    : "Name, username or phone number"
+              }
+              aria-label="Find a person"
+              maxLength={lookupMode === "username" ? 33 : 64}
+              inputMode={lookupMode === "phone" ? "tel" : "text"}
+              autoCapitalize="none"
+              autoComplete="off"
+              spellCheck={false}
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                lookupRequest.current += 1;
+                setLookupResult(null);
+                setLookupError("");
+                setLookupPending(false);
+                setError("");
+              }}
+              disabled={busy}
+            />
+            {query && (
+              <button
+                type="button"
+                aria-label="Clear search"
+                onClick={() => {
+                  setQuery("");
+                  lookupRequest.current += 1;
+                  setLookupResult(null);
+                  setLookupError("");
+                  setLookupPending(false);
+                }}
+              >
+                <Icon name="close" size={16} />
+              </button>
+            )}
+          </label>
+          {lookupMode !== "search" && (
+            <Button type="submit" disabled={busy || lookupPending || !needle}>
+              {lookupPending ? (
+                <Spinner label="Finding person" />
+              ) : (
+                <Icon name="search" size={17} />
+              )}
+              Find person
+            </Button>
           )}
-        </label>
+        </form>
         <p className="section-label">
-          {query.trim() ? "SEARCH RESULTS" : "YOUR CONTACTS"}
+          {lookupMode !== "search"
+            ? "ACCOUNT LOOKUP"
+            : query.trim()
+              ? "SEARCH RESULTS"
+              : "YOUR CONTACTS"}
           {mode === "group" && <span>{selected.length} selected</span>}
         </p>
         <div className="new-chat-users scroll-thin">
@@ -272,7 +429,9 @@ export default function NewChat({
               <Button
                 variant="secondary"
                 onClick={() => {
-                  if (needle) {
+                  if (lookupMode !== "search") {
+                    void findExact();
+                  } else if (needle) {
                     setSearch({ query: "", items: [], error: "" });
                     setSearchAttempt((value) => value + 1);
                   } else {
@@ -282,7 +441,12 @@ export default function NewChat({
                   }
                 }}
               >
-                Retry {needle ? "search" : "contacts"}
+                Retry{" "}
+                {lookupMode !== "search"
+                  ? "lookup"
+                  : needle
+                    ? "search"
+                    : "contacts"}
               </Button>
             </div>
           ) : users.length ? (
@@ -304,7 +468,9 @@ export default function NewChat({
                 <span className="person-info">
                   <strong>{user.nickname || user.display_name}</strong>
                   <small>
-                    {user.username ? `@${user.username}` : user.phone}
+                    {user.username
+                      ? `@${user.username} · ${user.phone}`
+                      : user.phone}
                   </small>
                 </span>
                 {mode === "group" ? (
@@ -324,14 +490,20 @@ export default function NewChat({
             <div className="centered-state">
               <Icon name="users" size={30} />
               <p>
-                {query.trim()
-                  ? "No people found"
-                  : "Find someone to start a conversation"}
+                {lookupMode !== "search"
+                  ? "Find an account"
+                  : query.trim()
+                    ? "No people found"
+                    : "Find someone to start a conversation"}
               </p>
               <small>
-                {query.trim()
-                  ? "Try another name, username or phone number."
-                  : "Search by their name, username or phone number."}
+                {lookupMode === "phone"
+                  ? "Enter the number they used to register, including the country code."
+                  : lookupMode === "username"
+                    ? "Enter their exact username. The @ symbol is optional."
+                    : query.trim()
+                      ? "Try another name, username or phone number."
+                      : "Search by their name, username or phone number."}
               </small>
             </div>
           )}
@@ -346,7 +518,7 @@ export default function NewChat({
         <p className="subtle-note">
           {addToGroup
             ? "New members can see messages sent after they join."
-            : "Only registered accounts appear in search. Sign in with another phone number in a second browser to connect."}
+            : "Only registered accounts appear here. Ask someone to create an account, then search for their phone number or username."}
         </p>
         {mode === "group" && (
           <div className="form-actions">

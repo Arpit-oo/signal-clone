@@ -13,6 +13,14 @@ CONVERSATION_TYPES = ("direct", "group", "note_to_self")
 MEMBER_ROLES = ("admin", "member")
 
 
+def direct_identity_key(a: int, b: int) -> str:
+    return f"direct:{min(a, b)}:{max(a, b)}"
+
+
+def note_identity_key(user_id: int) -> str:
+    return f"self:{user_id}"
+
+
 class Conversation(Base):
     __tablename__ = "conversations"
     __table_args__ = (
@@ -22,6 +30,9 @@ class Conversation(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     type: Mapped[str] = mapped_column(String(16))
+    # One reusable chat for each direct pair or self. Groups and preserved legacy
+    # duplicates have no key; their history and membership settings stay intact.
+    identity_key: Mapped[str | None] = mapped_column(String(64), unique=True, index=True)
     # Group-only fields; direct chats take their name/avatar from the other member.
     name: Mapped[str | None] = mapped_column(String(64))
     description: Mapped[str | None] = mapped_column(Text)

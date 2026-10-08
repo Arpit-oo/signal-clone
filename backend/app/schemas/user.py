@@ -3,7 +3,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-PHONE_RE = re.compile(r"^\+?[1-9]\d{6,14}$")
+PHONE_RE = re.compile(r"\+[1-9][0-9]{6,14}")
 USERNAME_RE = re.compile(r"^[a-z][a-z0-9_]{2,31}$")
 AVATAR_COLORS = tuple(f"A{n}" for n in range(100, 220, 10))
 
@@ -12,7 +12,7 @@ def normalize_phone(raw: str) -> str:
     digits = re.sub(r"[\s\-().]", "", raw)
     if not digits.startswith("+"):
         digits = "+" + digits
-    if not PHONE_RE.match(digits):
+    if not PHONE_RE.fullmatch(digits):
         raise ValueError("Enter a valid phone number with country code")
     return digits
 

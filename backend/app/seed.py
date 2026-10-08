@@ -31,6 +31,7 @@ from app.models import (
     Reaction,
     User,
 )
+from app.models.conversation import direct_identity_key, note_identity_key
 
 settings = get_settings()
 
@@ -376,6 +377,7 @@ async def seed(db) -> None:
     for key, user in users.items():
         conv = Conversation(
             type="note_to_self",
+            identity_key=note_identity_key(user.id),
             created_by=user.id,
             avatar_color=user.avatar_color,
             created_at=now - timedelta(days=30),
@@ -391,7 +393,12 @@ async def seed(db) -> None:
 
     for (a, b), script, opts in DIRECT_CHATS:
         start = now - timedelta(minutes=max(line.minutes_ago for line in script) + 5)
-        conv = Conversation(type="direct", created_by=users[a].id, created_at=start)
+        conv = Conversation(
+            type="direct",
+            identity_key=direct_identity_key(users[a].id, users[b].id),
+            created_by=users[a].id,
+            created_at=start,
+        )
         conv.members.extend(
             ConversationMember(
                 user_id=users[k].id,

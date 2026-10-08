@@ -4,6 +4,7 @@ from fastapi import APIRouter
 
 from app.api.deps import DB, CurrentUser
 from app.schemas.message import (
+    DeliveredRequest,
     ForwardRequest,
     MessageEdit,
     MessageInfo,
@@ -14,6 +15,11 @@ from app.services import messages as msg_svc
 from app.ws.manager import manager
 
 router = APIRouter(prefix="/messages", tags=["messages"])
+
+
+@router.post("/delivered", status_code=204)
+async def mark_delivered(body: DeliveredRequest, me: CurrentUser, db: DB) -> None:
+    await msg_svc.mark_delivered(db, me, body.message_ids)
 
 
 @router.get("/{message_id}/info", response_model=MessageInfo)

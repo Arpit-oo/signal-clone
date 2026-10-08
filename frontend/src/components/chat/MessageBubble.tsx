@@ -242,7 +242,7 @@ export function MessageBubble({
       )}
       <div className="chat-message-stack">
         <div
-          className={`chat-bubble ${message.is_deleted ? "chat-deleted" : ""}`}
+          className={`chat-bubble ${message.is_deleted ? "chat-deleted" : ""} ${!message.is_deleted && !message.attachments.length && !message.localAttachments?.length ? "chat-bubble-text" : ""}`}
         >
           {groupChat && !own && !grouped && (
             <div className="chat-sender-name">{displayName(sender)}</div>

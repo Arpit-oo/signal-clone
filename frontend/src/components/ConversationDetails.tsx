@@ -14,7 +14,6 @@ import {
   IconButton,
   Modal,
   Spinner,
-  Toggle,
   errorMessage,
   useNow,
 } from "./ui";
@@ -143,13 +142,11 @@ export default function ConversationDetails({
     setNickname(updated.nickname ?? "");
     for (const current of Object.values(useChat.getState().conversations)) {
       if (current.peer?.id === updated.id)
-        useChat
-          .getState()
-          .upsertConversation({
-            ...current,
-            peer: updated,
-            name: updated.nickname || updated.display_name,
-          });
+        useChat.getState().upsertConversation({
+          ...current,
+          peer: updated,
+          name: updated.nickname || updated.display_name,
+        });
     }
     await useChat.getState().loadConversations();
     await refresh();
@@ -295,14 +292,30 @@ export default function ConversationDetails({
         )}
         <section className="details-section">
           <h3>Conversation</h3>
-          <Toggle
-            label="Pin conversation"
-            checked={conversation.is_pinned}
-            disabled={busy || conversation.is_archived}
-            onChange={(checked) =>
-              void act(() => settings({ is_pinned: checked }))
-            }
-          />
+          <div className="details-pin-row">
+            <span>
+              <strong>
+                {conversation.is_pinned ? "Pinned to the top" : "Pin this chat"}
+              </strong>
+              <small>
+                {conversation.is_archived
+                  ? "Unarchive this conversation before pinning it."
+                  : "Your pin is saved to your account and only changes your chat list."}
+              </small>
+            </span>
+            <Button
+              variant="secondary"
+              disabled={busy || conversation.is_archived}
+              onClick={() =>
+                void act(() => settings({ is_pinned: !conversation.is_pinned }))
+              }
+            >
+              <Icon name="pin" size={16} />
+              {conversation.is_pinned
+                ? "Unpin conversation"
+                : "Pin conversation"}
+            </Button>
+          </div>
           <label className="ui-field detail-field">
             <span>
               <Icon name="bell" size={18} />

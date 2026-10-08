@@ -124,6 +124,7 @@ export default function ProfileEditor({
           maxLength={64}
           placeholder="First and last name"
           autoComplete="name"
+          autoFocus={onboarding}
           disabled={busy}
           onChange={(e) => {
             setName(e.target.value);

@@ -2,6 +2,7 @@ import random
 from collections.abc import Sequence
 
 from sqlalchemy import exists, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import conflict
@@ -60,13 +61,23 @@ async def get_or_create_by_phone(db: AsyncSession, phone: str) -> tuple[User, bo
         return user, False
     user = User(phone=phone, avatar_color=random.choice(AVATAR_COLORS))
     db.add(user)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        # Another verification request may have registered this number while
+        # this request was waiting to insert it.
+        existing = await db.scalar(select(User).where(User.phone == phone))
+        if existing is None:
+            raise
+        return existing, False
     await db.refresh(user)
     return user, True
 
 
 async def update_me(db: AsyncSession, user: User, data: MeUpdate) -> User:
     changes = data.model_dump(exclude_unset=True)
+    user_id = user.id
     if "username" in changes:
         username = changes["username"] or None
         if username:
@@ -78,7 +89,18 @@ async def update_me(db: AsyncSession, user: User, data: MeUpdate) -> User:
         changes["username"] = username
     for key, value in changes.items():
         setattr(user, key, value)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        # The pre-check gives a useful error for an existing claim; the unique
+        # constraint arbitrates simultaneous claims by different accounts.
+        username = changes.get("username")
+        if username and await db.scalar(
+            select(User.id).where(User.username == username, User.id != user_id)
+        ):
+            raise conflict("That username is taken") from None
+        raise
     await db.refresh(user)
     return user
 
@@ -116,7 +138,8 @@ async def find_user(
     if phone:
         return await db.scalar(select(User).where(User.phone == phone))
     if username:
-        return await db.scalar(select(User).where(User.username == username.lower().lstrip("@")))
+        username = username.strip().lower().lstrip("@")
+        return await db.scalar(select(User).where(User.username == username))
     return None
 
 

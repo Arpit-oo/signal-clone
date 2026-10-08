@@ -18,7 +18,7 @@ from app.core.security import decode_access_token
 from app.db.base import utcnow
 from app.db.session import SessionLocal
 from app.models import ConversationMember, User
-from app.schemas.message import MessageSend
+from app.schemas.message import DeliveredRequest, MessageSend
 from app.services import conversations as conv_svc
 from app.services import messages as msg_svc
 from app.ws.manager import manager
@@ -90,9 +90,8 @@ async def _handle(ws: WebSocket, user_id: int, type_: str, data: Any) -> None:
                 await broadcast_typing(conversation_id, me.id, False)
 
         elif type_ == "receipt.delivered":
-            ids = [int(i) for i in data.get("message_ids", [])][:500]
-            if ids:
-                await msg_svc.mark_delivered(db, me, ids)
+            payload = DeliveredRequest.model_validate(data)
+            await msg_svc.mark_delivered(db, me, payload.message_ids)
 
         elif type_ == "receipt.read":
             await msg_svc.mark_read(db, me, int(data["conversation_id"]), int(data["up_to_id"]))
@@ -119,11 +118,6 @@ async def websocket_endpoint(ws: WebSocket, token: str = "") -> None:
     try:
         if first_socket:
             await broadcast_presence(user_id, True, None)
-        # Anything sent while we were offline is now on its way to this client.
-        async with SessionLocal() as db:
-            me = await db.get(User, user_id)
-            await msg_svc.mark_delivered(db, me)
-
         while True:
             type_ = None
             data = {}

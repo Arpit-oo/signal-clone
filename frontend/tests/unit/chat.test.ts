@@ -23,15 +23,54 @@ const message = (id: number, overrides: Partial<Message> = {}): Message => ({
 
 beforeEach(async () => {
   resetChat();
+  vi.spyOn(api.messages, "delivered").mockResolvedValue(undefined);
   vi.spyOn(api.conversations, "list").mockResolvedValue([conversation()]);
   vi.spyOn(api.conversations, "messages").mockResolvedValue({ items: [], has_more_before: false, has_more_after: false });
   vi.spyOn(api.conversations, "send").mockImplementation(async (_id, input) => message(20, { ...input, sender_id: 1, status: "sent" }));
   await useChat.getState().init(1);
   await useChat.getState().loadLatest(10);
 });
-afterEach(() => { resetChat(); vi.restoreAllMocks(); });
+afterEach(() => { resetChat(); vi.useRealTimers(); vi.restoreAllMocks(); });
 
 describe("chat delivery and recovery", () => {
+  it("acknowledges received history and duplicate socket payloads without acknowledging own or system messages", async () => {
+    vi.useFakeTimers();
+    const incoming = message(11);
+    vi.mocked(api.conversations.messages).mockResolvedValueOnce({
+      items: [incoming, message(12, { sender_id: 1 }), message(13, { type: "system", sender_id: null })],
+      has_more_before: false, has_more_after: false,
+    });
+    await useChat.getState().loadLatest(10);
+    useChat.getState().handleEvent({ type: "message.new", data: incoming });
+    useChat.getState().handleEvent({ type: "message.new", data: incoming });
+    expect(api.messages.delivered).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(150);
+    expect(api.messages.delivered).toHaveBeenCalledExactlyOnceWith([11]);
+  });
+
+  it("retries delivery acknowledgements when the server temporarily cannot store them", async () => {
+    vi.useFakeTimers();
+    vi.mocked(api.messages.delivered).mockRejectedValueOnce(new Error("Offline"));
+    useChat.getState().handleEvent({ type: "message.new", data: message(11) });
+    await vi.advanceTimersByTimeAsync(150);
+    expect(api.messages.delivered).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(api.messages.delivered).toHaveBeenCalledTimes(2);
+    expect(api.messages.delivered).toHaveBeenLastCalledWith([11]);
+  });
+
+  it("does not retry a previous account's in-flight delivery acknowledgement after reset", async () => {
+    vi.useFakeTimers();
+    let fail!: (error: Error) => void;
+    vi.mocked(api.messages.delivered).mockReturnValueOnce(new Promise((_resolve, reject) => { fail = reject; }));
+    useChat.getState().handleEvent({ type: "message.new", data: message(11) });
+    await vi.advanceTimersByTimeAsync(150);
+    resetChat();
+    await useChat.getState().init(2);
+    fail(new Error("Late failure"));
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(api.messages.delivered).toHaveBeenCalledExactlyOnceWith([11]);
+  });
   it("preserves pending sends and confirms them while viewing older search results", async () => {
     vi.mocked(socket.send).mockReturnValueOnce(true);
     await useChat.getState().send(10, { body: "Pending at latest" });

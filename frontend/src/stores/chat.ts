@@ -150,17 +150,49 @@ function isMuted(c: Conversation): boolean {
   return !!c.muted_until && new Date(c.muted_until).getTime() > Date.now();
 }
 
-let deliveredQueue: number[] = [];
+const deliveredQueue = new Set<number>();
 let deliveredTimer: ReturnType<typeof setTimeout> | null = null;
+let deliveryInFlight = false;
+let deliveryEpoch = 0;
+
+async function flushDelivered() {
+  deliveredTimer = null;
+  if (deliveryInFlight || !deliveredQueue.size) return;
+  const epoch = deliveryEpoch;
+  const ids = [...deliveredQueue].slice(0, 500);
+  for (const id of ids) deliveredQueue.delete(id);
+  deliveryInFlight = true;
+  let retryDelay = 150;
+  try {
+    // HTTP confirms stored receipts, including during socket outages.
+    await api.messages.delivered(ids);
+  } catch {
+    if (epoch !== deliveryEpoch) return;
+    for (const id of ids) deliveredQueue.add(id);
+    retryDelay = 3000;
+  } finally {
+    if (epoch === deliveryEpoch) {
+      deliveryInFlight = false;
+      if (deliveredQueue.size && !deliveredTimer) {
+        deliveredTimer = setTimeout(() => void flushDelivered(), retryDelay);
+      }
+    }
+  }
+}
+
 function queueDelivered(id: number) {
-  deliveredQueue.push(id);
-  if (deliveredTimer) return;
-  deliveredTimer = setTimeout(() => {
-    const ids = deliveredQueue;
-    deliveredQueue = [];
-    deliveredTimer = null;
-    socket.send("receipt.delivered", { message_ids: ids });
-  }, 150);
+  deliveredQueue.add(id);
+  if (deliveredTimer || deliveryInFlight) return;
+  deliveredTimer = setTimeout(() => void flushDelivered(), 150);
+}
+
+function acknowledgeReceived(messages: Message[], meId: number | null) {
+  if (!meId) return;
+  for (const message of messages) {
+    if (message.type === "text" && message.sender_id !== meId && message.id > 0) {
+      queueDelivered(message.id);
+    }
+  }
 }
 
 let tempId = -1;
@@ -232,6 +264,7 @@ export const useChat = create<ChatState>()((set, get) => {
         return { outbox: rest };
       });
     }
+    acknowledgeReceived([msg], meId);
     if (duplicate) return;
     const conv = get().conversations[msg.conversation_id];
     if (!conv) {
@@ -250,7 +283,6 @@ export const useChat = create<ChatState>()((set, get) => {
       is_archived: c.is_archived && isMuted(c),
       marked_unread: fromOther ? c.marked_unread : false,
     }));
-    if (fromOther && msg.type === "text") queueDelivered(msg.id);
     // Remove the sender's typing bubble as soon as their message lands.
     if (msg.sender_id) setTyping(msg.conversation_id, msg.sender_id, false);
   }
@@ -383,6 +415,7 @@ export const useChat = create<ChatState>()((set, get) => {
       patchBucket(id, () => ({ loading: true, error: null }));
       try {
         const page = await api.conversations.messages(id, { limit: 50 });
+        acknowledgeReceived(page.items, get().meId);
         set((s) => {
           const outbox = { ...s.outbox };
           for (const message of page.items) {
@@ -411,6 +444,7 @@ export const useChat = create<ChatState>()((set, get) => {
       patchBucket(id, () => ({ loading: true, error: null }));
       try {
         const page = await api.conversations.messages(id, { before: first.id, limit: 50 });
+        acknowledgeReceived(page.items, get().meId);
         patchBucket(id, (cur) => ({
           items: mergeMessages(cur.items, page.items),
           hasMoreBefore: page.has_more_before,
@@ -430,6 +464,7 @@ export const useChat = create<ChatState>()((set, get) => {
       patchBucket(id, () => ({ loading: true, error: null }));
       try {
         const page = await api.conversations.messages(id, { after: last.id, limit: 50 });
+        acknowledgeReceived(page.items, get().meId);
         patchBucket(id, (cur) => ({
           items: mergeMessages(cur.items, page.items),
           hasMoreAfter: page.has_more_after,
@@ -447,6 +482,7 @@ export const useChat = create<ChatState>()((set, get) => {
         patchBucket(id, () => ({ loading: true, error: null }));
         try {
           const page = await api.conversations.messages(id, { around: messageId, limit: 60 });
+          acknowledgeReceived(page.items, get().meId);
           set((s) => {
             const outbox = { ...s.outbox };
             for (const message of page.items) {
@@ -766,7 +802,9 @@ export function resetChat() {
   stopTyping();
   if (deliveredTimer) clearTimeout(deliveredTimer);
   deliveredTimer = null;
-  deliveredQueue = [];
+  deliveredQueue.clear();
+  deliveryEpoch += 1;
+  deliveryInFlight = false;
   for (const timer of typingTimers.values()) clearTimeout(timer);
   typingTimers.clear();
   for (const bucket of Object.values(useChat.getState().buckets)) {

@@ -1,14 +1,17 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { Toaster, toast } from "sonner";
 
 import { socket } from "@/lib/ws";
 import { resetChat, useChat } from "@/stores/chat";
 import { applyChatColor, applyTheme, usePrefs } from "@/stores/prefs";
 import { useSession } from "@/stores/session";
+import { conversationRoute } from "@/lib/routes";
 
 export function Providers({ children }: { children: ReactNode }) {
+  const router = useRouter();
   const me = useSession((s) => s.me);
   const status = useSession((s) => s.status);
   const theme = usePrefs((s) => s.theme);
@@ -30,7 +33,11 @@ export function Providers({ children }: { children: ReactNode }) {
         const title = prefs.notificationContent === "none" ? "New message" : conversation?.name ?? "Signal";
         const body = prefs.notificationContent === "name_and_message" ? event.data.body || "Attachment" : "";
         const notification = new Notification(title, { body, tag: `signal-${event.data.conversation_id}`, silent: !prefs.notificationSound });
-        notification.onclick = () => { window.focus(); notification.close(); };
+        notification.onclick = () => {
+          window.focus();
+          router.push(conversationRoute(event.data.conversation_id), { scroll: false });
+          notification.close();
+        };
       }
     });
     const removeStatus = socket.onStatus((connection) => {
@@ -54,7 +61,7 @@ export function Providers({ children }: { children: ReactNode }) {
       removeStatus();
       window.removeEventListener("online", online);
     };
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (status !== "authenticated" || !me) return;

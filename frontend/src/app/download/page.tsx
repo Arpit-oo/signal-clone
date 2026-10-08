@@ -18,19 +18,31 @@ export default function Download() {
           </div>
           <div className="site-download-grid">
             <section className="site-download-card">
-              <h2>Try the web messenger</h2>
+              <h2>Your web messenger</h2>
               <p>
-                Open this project’s messenger to send messages, share files, and
-                make a group with the demo accounts.
+                Create an account with your own phone number, set up your
+                profile, and start messaging. Share files, stay connected in
+                groups, and return to your conversations from this browser.
               </p>
-              <Link className="site-button site-button-white" href="/chats">
-                Open web messenger
-              </Link>
+              <div className="site-download-actions">
+                <Link className="site-button site-button-white" href="/signup">
+                  Create account
+                </Link>
+                <Link
+                  className="site-button site-button-outline"
+                  href="/chats"
+                >
+                  Open web messenger
+                </Link>
+              </div>
+              <p className="site-download-signin">
+                Already have an account? <Link href="/login">Sign in</Link>.
+              </p>
               <small>
-                This is an independent Signal-inspired demo. Verification code:{" "}
-                <strong>123456</strong>. No SMS is sent. Messages are stored on
-                the local server without end-to-end encryption. Calling and
-                device linking are not available.
+                This independent Signal-inspired web app uses an on-screen
+                verification code; no SMS is sent. Messages are stored on this
+                server without end-to-end encryption. Calling and device linking
+                are not available.
               </small>
             </section>
             <section className="site-download-card">
