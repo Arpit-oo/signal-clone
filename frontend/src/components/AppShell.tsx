@@ -29,7 +29,12 @@ import { useConversationSearch } from "@/hooks/shell/useConversationSearch";
 export default function AppShell({
   initialConversationId,
   initialDetails = false,
-}: { initialConversationId?: number; initialDetails?: boolean } = {}) {
+  initialFilter = "all",
+}: {
+  initialConversationId?: number;
+  initialDetails?: boolean;
+  initialFilter?: "all" | "archive";
+} = {}) {
   const router = useRouter();
   const now = useNow();
   const conversations = useChat((state) => state.conversations);
@@ -43,7 +48,7 @@ export default function AppShell({
     initialConversationId > 0 &&
     conversations[initialConversationId]?.is_archived
       ? "archive"
-      : "all",
+      : initialFilter,
   );
   const route = useConversationRoute(initialConversationId, setFilter);
   const search = useConversationSearch();

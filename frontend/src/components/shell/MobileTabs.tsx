@@ -5,22 +5,32 @@ import { routes } from "@/lib/routes";
 import { Icon } from "@/components/ui";
 
 export default function MobileTabs({
+  activeSection = "chats",
   unreadCount,
   onChats,
 }: {
+  activeSection?: "chats" | "stories";
   unreadCount: number;
   onChats: () => void;
 }) {
   return (
     <nav className="sidebar-mobile-tabs" aria-label="Mobile navigation">
-      <button type="button" aria-current="page" onClick={onChats}>
+      <button
+        type="button"
+        aria-current={activeSection === "chats" ? "page" : undefined}
+        onClick={onChats}
+      >
         <span>
           <Icon name="chat" size={24} />
           {unreadCount > 0 && <i>{unreadCount}</i>}
         </span>
         Chats
       </button>
-      <Link href={routes.stories} aria-label="Stories">
+      <Link
+        href={routes.stories}
+        aria-label="Stories"
+        aria-current={activeSection === "stories" ? "page" : undefined}
+      >
         <svg
           width="24"
           height="24"

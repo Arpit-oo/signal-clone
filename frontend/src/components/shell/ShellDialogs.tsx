@@ -2,7 +2,7 @@
 
 import NewChat from "@/components/NewChat";
 import Settings from "@/components/Settings";
-import { Button, Modal } from "@/components/ui";
+import CallsDialog from "./CallsDialog";
 
 export default function ShellDialogs({
   newChat,
@@ -27,19 +27,7 @@ export default function ShellDialogs({
         <NewChat onClose={() => onNewChatClose()} onCreated={onCreated} />
       )}{" "}
       {settings && <Settings onClose={() => onSettingsClose()} />}
-      {comingSoon && (
-        <Modal title={comingSoon} onClose={() => onCallsClose()}>
-          <div className="ui-modal-body">
-            <p>{comingSoon} are coming soon.</p>
-            <p className="subtle-note">
-              Voice and video calling will be available in a future release.
-            </p>
-            <div className="form-actions">
-              <Button onClick={() => onCallsClose()}>Got it</Button>
-            </div>
-          </div>
-        </Modal>
-      )}
+      {comingSoon && <CallsDialog onClose={onCallsClose} />}
     </>
   );
 }

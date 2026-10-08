@@ -16,6 +16,7 @@ export function safeReturnPath(value?: string | string[]): string {
   if (
     typeof value === "string" &&
     (value === routes.chats ||
+      value === `${routes.chats}?filter=archive` ||
       value === routes.stories ||
       /^\/chats\/[1-9]\d*(?:\?details=1)?$/.test(value))
   ) {

@@ -9,6 +9,7 @@ The local frontend runs at **http://127.0.0.1:3010**. The backend runs at **http
 | `/signup` | Create an account with your own phone number, simulated verification, name, optional username, and profile photo. Signed-in users can choose another number. |
 | `/login` | Sign in with your number or select Alex, Priya, or Marcus from the seeded accounts. |
 | `/chats` | Your conversation list and messenger. Anonymous users go to sign-in. |
+| `/chats?filter=archive` | Open your archived conversations, including from the Stories navigation. Refresh and sign-in preserve this destination. |
 | `/chats/{conversationId}` | Open a specific conversation. Refresh and browser Back/Forward retain the selected chat. Only authorized members can open it. |
 | `/chats/{conversationId}?details=1` | Open a conversation with its details panel. |
 | `/stories` | Authenticated story feed, creation, and viewer. Share text/photo/video with selected people; posts expire after 24 hours. |

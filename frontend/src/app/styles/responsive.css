@@ -185,7 +185,8 @@
     min-width: 80px;
     color: var(--label-secondary);
   }
-  .sidebar-mobile-tabs button[aria-current="page"] {
+  .sidebar-mobile-tabs button[aria-current="page"],
+  .sidebar-mobile-tabs a[aria-current="page"] {
     color: var(--label-primary);
   }
   .sidebar-mobile-tabs button > span {

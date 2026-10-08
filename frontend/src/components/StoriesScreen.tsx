@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
@@ -21,6 +20,10 @@ import {
 } from "@/components/ui";
 import StoryComposer from "@/components/stories/StoryComposer";
 import StoryViewer from "@/components/stories/StoryViewer";
+import CallsDialog from "@/components/shell/CallsDialog";
+import MobileTabs from "@/components/shell/MobileTabs";
+import NavigationRail from "@/components/shell/NavigationRail";
+import { useConversationList } from "@/hooks/shell/useConversationList";
 import "@/components/stories/stories.css";
 
 interface StoryGroup {
@@ -44,7 +47,9 @@ export function storyTime(value: string, now: number) {
 }
 
 function StoriesApp() {
+  const router = useRouter();
   const me = useSession((state) => state.me)!;
+  const { unreadCount } = useConversationList("all");
   const now = useNow();
   const [feed, setFeed] = useState<{
     items: Story[];
@@ -53,6 +58,7 @@ function StoriesApp() {
   }>({ items: [], loading: true, error: "" });
   const [composer, setComposer] = useState(false);
   const [settings, setSettings] = useState(false);
+  const [calls, setCalls] = useState(false);
   const [viewerAuthorId, setViewerAuthorId] = useState<number | null>(null);
   const request = useRef(0);
 
@@ -181,53 +187,20 @@ function StoriesApp() {
   }
   return (
     <main className="app-shell stories-app">
-      <nav className="app-rail" aria-label="Main navigation">
-        <button
-          type="button"
-          className="rail-button rail-top-menu"
-          aria-label="Open settings"
-          onClick={() => setSettings(true)}
-        >
-          <Icon name="more" size={24} />
-        </button>
-        <Link
-          href={routes.chats}
-          className="rail-button"
-          aria-label="Conversations"
-        >
-          <Icon name="chat" size={23} />
-        </Link>
-        <Link
-          href={routes.stories}
-          className="rail-button active"
-          aria-label="Stories"
-          aria-current="page"
-        >
-          <Icon name="image" size={23} />
-        </Link>
-        <span className="rail-spacer" />
-        <button
-          type="button"
-          className="rail-button"
-          aria-label="Settings"
-          onClick={() => setSettings(true)}
-        >
-          <Icon name="settings" size={23} />
-        </button>
-        <button
-          type="button"
-          className="rail-profile"
-          aria-label="Your profile"
-          onClick={() => setSettings(true)}
-        >
-          <Avatar
-            name={me.display_name}
-            color={me.avatar_color}
-            url={me.avatar_url}
-            size={34}
-          />
-        </button>
-      </nav>
+      <NavigationRail
+        activeSection="stories"
+        filter="all"
+        unreadCount={unreadCount}
+        onFilterChange={(filter) =>
+          router.push(
+            filter === "archive"
+              ? `${routes.chats}?filter=archive`
+              : routes.chats,
+          )
+        }
+        onSettings={() => setSettings(true)}
+        onCalls={() => setCalls(true)}
+      />
       <section className="stories-list-pane" aria-label="Stories feed">
         <header className="stories-header">
           <button
@@ -323,16 +296,11 @@ function StoriesApp() {
           <Icon name="clock" size={14} />
           Stories expire after 24 hours
         </p>
-        <nav className="stories-mobile-tabs" aria-label="Mobile navigation">
-          <Link href={routes.chats}>
-            <Icon name="chat" size={24} />
-            Chats
-          </Link>
-          <Link href={routes.stories} aria-current="page">
-            <Icon name="image" size={24} />
-            Stories
-          </Link>
-        </nav>
+        <MobileTabs
+          activeSection="stories"
+          unreadCount={unreadCount}
+          onChats={() => router.push(routes.chats)}
+        />
       </section>
       <section className="stories-idle">
         <Icon name="image" size={62} />
@@ -380,6 +348,7 @@ function StoriesApp() {
           }}
         />
       )}
+      {calls && <CallsDialog onClose={() => setCalls(false)} />}
       {settings && (
         <Settings
           onClose={() => {

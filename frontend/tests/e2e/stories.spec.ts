@@ -25,6 +25,104 @@ async function selectAudience(page: Page, name: string) {
   await expect(composer).toBeHidden();
 }
 
+test("Stories keep the Chats navigation and its controls on desktop and mobile", async ({
+  page,
+}) => {
+  await signIn(page, "+15550000001");
+  const rail = page.getByRole("navigation", {
+    name: "Main navigation",
+    exact: true,
+  });
+  await expect(rail).toBeVisible();
+  const controls = await rail.locator("button, a").evaluateAll((elements) =>
+    elements.map((element) => ({
+      label: element.getAttribute("aria-label"),
+      icon: element.querySelector("svg")?.innerHTML ?? null,
+    })),
+  );
+  const bounds = await rail.boundingBox();
+  await rail.getByRole("link", { name: "Stories", exact: true }).click();
+  await expect(page).toHaveURL(/\/stories$/);
+  await expect(
+    rail.getByRole("link", { name: "Stories", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
+  await expect(rail.locator('[aria-current="page"]')).toHaveCount(1);
+  expect(
+    await rail.locator("button, a").evaluateAll((elements) =>
+      elements.map((element) => ({
+        label: element.getAttribute("aria-label"),
+        icon: element.querySelector("svg")?.innerHTML ?? null,
+      })),
+    ),
+  ).toEqual(controls);
+  expect(await rail.boundingBox()).toEqual(bounds);
+
+  await rail
+    .getByRole("button", { name: "Calls · Coming soon", exact: true })
+    .click();
+  const calls = page.getByRole("dialog", { name: "Calls", exact: true });
+  await expect(calls).toContainText("Calls are coming soon.");
+  await calls.getByRole("button", { name: "Got it", exact: true }).click();
+  await rail.getByRole("button", { name: "Settings", exact: true }).click();
+  const settings = page.getByRole("dialog", { name: "Settings", exact: true });
+  await expect(settings).toBeVisible();
+  await settings
+    .getByRole("button", { name: "Close dialog", exact: true })
+    .click();
+  await rail
+    .getByRole("button", { name: "Archived conversations", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/chats\?filter=archive$/);
+  await expect(
+    page.getByRole("heading", { name: "Archived", exact: true }),
+  ).toBeVisible();
+  await expect(
+    rail.getByRole("button", { name: "Archived conversations", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
+  await page.reload();
+  await expect(
+    page.getByRole("heading", { name: "Archived", exact: true }),
+  ).toBeVisible();
+  await page.goBack();
+  await expect(page).toHaveURL(/\/stories$/);
+  await expect(
+    page.getByRole("region", { name: "Stories feed", exact: true }),
+  ).toBeVisible();
+  await rail
+    .getByRole("button", { name: "Conversations", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/chats$/);
+  await expect(
+    page.getByRole("heading", { name: "Chats", exact: true }),
+  ).toBeVisible();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const mobile = page.getByRole("navigation", {
+    name: "Mobile navigation",
+    exact: true,
+  });
+  await expect(mobile.getByRole("button", { name: /Chats/ })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  await mobile.getByRole("link", { name: "Stories", exact: true }).click();
+  await expect(page).toHaveURL(/\/stories$/);
+  await expect(
+    mobile.getByRole("link", { name: "Stories", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
+  await expect(
+    mobile.getByRole("button", { name: /Chats/ }),
+  ).not.toHaveAttribute("aria-current", "page");
+  await expect(mobile.locator('[aria-current="page"]')).toHaveCount(1);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth,
+    ),
+  ).toBe(false);
+  await mobile.getByRole("button", { name: /Chats/ }).click();
+  await expect(page).toHaveURL(/\/chats$/);
+});
+
 test("Stories preserve the sign-in destination and share live with the selected audience", async ({
   page,
   browser,
@@ -238,7 +336,10 @@ test("photo Stories render on phones, retain privacy controls, and link back to 
   await viewer
     .getByRole("button", { name: "Close story", exact: true })
     .click();
-  await page.getByRole("link", { name: "Chats", exact: true }).click();
+  await page
+    .getByRole("navigation", { name: "Mobile navigation", exact: true })
+    .getByRole("button", { name: /Chats/ })
+    .click();
   await expect(page).toHaveURL(/\/chats$/);
 
   // The audience received the media post; a third account does not receive it.

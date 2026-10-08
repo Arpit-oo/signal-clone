@@ -10,9 +10,11 @@ import { useSession } from "@/stores/session";
 export default function ChatsScreen({
   initialConversationId,
   initialDetails = false,
+  initialFilter = "all",
 }: {
   initialConversationId?: number;
   initialDetails?: boolean;
+  initialFilter?: "all" | "archive";
 }) {
   const status = useSession((s) => s.status);
   const me = useSession((s) => s.me);
@@ -20,7 +22,9 @@ export default function ChatsScreen({
   const router = useRouter();
   const destination = initialConversationId
     ? `${conversationRoute(initialConversationId)}${initialDetails ? "?details=1" : ""}`
-    : routes.chats;
+    : initialFilter === "archive"
+      ? `${routes.chats}?filter=archive`
+      : routes.chats;
   useEffect(() => {
     if (status === "anonymous") {
       router.replace(authRoute("login", destination));
@@ -55,8 +59,10 @@ export default function ChatsScreen({
   }
   return (
     <AppShell
+      key={initialFilter}
       initialConversationId={initialConversationId}
       initialDetails={initialDetails}
+      initialFilter={initialFilter}
     />
   );
 }

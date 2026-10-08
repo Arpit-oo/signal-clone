@@ -7,12 +7,14 @@ import { Avatar, Icon } from "@/components/ui";
 import type { ConversationFilter } from "@/hooks/shell/useConversationList";
 
 export default function NavigationRail({
+  activeSection = "chats",
   filter,
   unreadCount,
   onFilterChange,
   onSettings,
   onCalls,
 }: {
+  activeSection?: "chats" | "stories";
   filter: ConversationFilter;
   unreadCount: number;
   onFilterChange: (filter: ConversationFilter) => void;
@@ -44,9 +46,12 @@ export default function NavigationRail({
       </button>
       <button
         type="button"
-        className={`rail-button ${filter !== "archive" ? "active" : ""}`}
+        className={`rail-button ${activeSection === "chats" && filter !== "archive" ? "active" : ""}`}
         title="Conversations"
         aria-label="Conversations"
+        aria-current={
+          activeSection === "chats" && filter !== "archive" ? "page" : undefined
+        }
         onClick={() => onFilterChange("all")}
       >
         <Icon name="chat" size={22} />
@@ -75,9 +80,10 @@ export default function NavigationRail({
       </button>
       <Link
         href={routes.stories}
-        className="rail-button"
+        className={`rail-button ${activeSection === "stories" ? "active" : ""}`}
         title="Stories"
         aria-label="Stories"
+        aria-current={activeSection === "stories" ? "page" : undefined}
       >
         <svg
           width="23"
@@ -95,9 +101,12 @@ export default function NavigationRail({
       </Link>
       <button
         type="button"
-        className={`rail-button ${filter === "archive" ? "active" : ""}`}
+        className={`rail-button ${activeSection === "chats" && filter === "archive" ? "active" : ""}`}
         title="Archived conversations"
         aria-label="Archived conversations"
+        aria-current={
+          activeSection === "chats" && filter === "archive" ? "page" : undefined
+        }
         onClick={() => onFilterChange("archive")}
       >
         <Icon name="archive" size={22} />
