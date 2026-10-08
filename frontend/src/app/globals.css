@@ -1,26 +1,293 @@
 @import "tailwindcss";
 
+/* Dark mode follows the data-theme attribute set by the theme script (light | dark). */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/*
+ * Design tokens. Values follow Signal Desktop's published palette so the clone reads as
+ * Signal; the token names are our own.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+
+  --surface-primary: #fafafa;
+  --surface-secondary: #f5f5f5;
+  --surface-tertiary: #f0f0f0;
+  --surface-quaternary: #e6e6e6;
+  --surface-card: #ffffff;
+  --surface-dialog: #fafafa;
+  --surface-menu: #ffffff;
+
+  --label-primary: rgb(0 0 0 / 0.9);
+  --label-secondary: rgb(0 0 0 / 0.6);
+  --label-placeholder: rgb(0 0 0 / 0.35);
+  --label-oncolor: #ffffff;
+  --label-oncolor-secondary: rgb(255 255 255 / 0.8);
+  --label-accent: #030ffc;
+  --label-destructive: #f21602;
+  --label-affirmative: #00a015;
+
+  --fill-primary: rgb(125 125 125 / 0.08);
+  --fill-primary-pressed: rgb(125 125 125 / 0.12);
+  --fill-secondary: rgb(125 125 125 / 0.16);
+  --fill-secondary-pressed: rgb(125 125 125 / 0.2);
+  --fill-tertiary: rgb(125 125 125 / 0.24);
+  --fill-control: #ffffff;
+  --fill-inverted: #414141;
+  --fill-overlay: rgb(0 0 0 / 0.24);
+  --fill-accent: #4655ff;
+  --fill-accent-pressed: #3b4af4;
+  --fill-accent-tint: rgb(3 15 252 / 0.06);
+  --fill-destructive: #f21c0d;
+  --fill-destructive-tint: rgb(242 22 2 / 0.06);
+
+  --border-primary: rgb(0 0 0 / 0.06);
+  --border-secondary: rgb(0 0 0 / 0.12);
+  --border-tertiary: rgb(0 0 0 / 0.24);
+  --border-selected: #4655ff;
+
+  --message-incoming: #ebebeb;
+  /* Outgoing bubbles follow the chat color picked in Appearance settings. */
+  --message-outgoing: #2267f5;
+  --message-outgoing-image: none;
+  --onmessage-incoming-fill: rgb(254 254 254 / 0.8);
+  --onmessage-outgoing-fill: rgb(255 255 255 / 0.2);
+
+  --shadow-elevated: 0 4px 16px rgb(0 0 0 / 0.12), 0 0 0 0.5px rgb(0 0 0 / 0.08);
+  --shadow-dialog: 0 16px 48px rgb(0 0 0 / 0.2), 0 0 0 0.5px rgb(0 0 0 / 0.08);
+
+  --text-scale: 1;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --surface-primary: #191919;
+  --surface-secondary: #1e1e1e;
+  --surface-tertiary: #282828;
+  --surface-quaternary: #373737;
+  --surface-card: #232323;
+  --surface-dialog: #2b2b2b;
+  --surface-menu: #2e2e2e;
+
+  --label-primary: rgb(255 255 255 / 0.9);
+  --label-secondary: rgb(255 255 255 / 0.6);
+  --label-placeholder: rgb(255 255 255 / 0.35);
+  --label-oncolor: rgb(255 255 255 / 0.9);
+  --label-oncolor-secondary: rgb(255 255 255 / 0.7);
+  --label-accent: #99a1ff;
+  --label-destructive: #ff4a3a;
+  --label-affirmative: #30d150;
+
+  --fill-primary: rgb(150 150 150 / 0.12);
+  --fill-primary-pressed: rgb(150 150 150 / 0.16);
+  --fill-secondary: rgb(150 150 150 / 0.2);
+  --fill-secondary-pressed: rgb(150 150 150 / 0.24);
+  --fill-tertiary: rgb(150 150 150 / 0.28);
+  --fill-control: rgb(150 150 150 / 0.12);
+  --fill-inverted: #dcdcdc;
+  --fill-overlay: rgb(0 0 0 / 0.48);
+  --fill-accent: #5563ff;
+  --fill-accent-pressed: #616eff;
+  --fill-accent-tint: rgb(153 161 255 / 0.12);
+  --fill-destructive: #ee382c;
+  --fill-destructive-tint: rgb(255 74 58 / 0.12);
+
+  --border-primary: rgb(255 255 255 / 0.06);
+  --border-secondary: rgb(255 255 255 / 0.12);
+  --border-tertiary: rgb(255 255 255 / 0.24);
+  --border-selected: #c9ceff;
+
+  --message-incoming: #323232;
+  --onmessage-incoming-fill: rgb(230 230 230 / 0.16);
+
+  --shadow-elevated: 0 4px 16px rgb(0 0 0 / 0.4), 0 0 0 0.5px rgb(255 255 255 / 0.08);
+  --shadow-dialog: 0 16px 48px rgb(0 0 0 / 0.5), 0 0 0 0.5px rgb(255 255 255 / 0.08);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter), -apple-system, system-ui, "Segoe UI", "Noto Sans",
+    "Helvetica Neue", Arial, sans-serif;
+
+  --color-surface-primary: var(--surface-primary);
+  --color-surface-secondary: var(--surface-secondary);
+  --color-surface-tertiary: var(--surface-tertiary);
+  --color-surface-quaternary: var(--surface-quaternary);
+  --color-surface-card: var(--surface-card);
+  --color-surface-dialog: var(--surface-dialog);
+  --color-surface-menu: var(--surface-menu);
+
+  --color-label-primary: var(--label-primary);
+  --color-label-secondary: var(--label-secondary);
+  --color-label-placeholder: var(--label-placeholder);
+  --color-label-oncolor: var(--label-oncolor);
+  --color-label-oncolor-secondary: var(--label-oncolor-secondary);
+  --color-label-accent: var(--label-accent);
+  --color-label-destructive: var(--label-destructive);
+  --color-label-affirmative: var(--label-affirmative);
+
+  --color-fill-primary: var(--fill-primary);
+  --color-fill-primary-pressed: var(--fill-primary-pressed);
+  --color-fill-secondary: var(--fill-secondary);
+  --color-fill-secondary-pressed: var(--fill-secondary-pressed);
+  --color-fill-tertiary: var(--fill-tertiary);
+  --color-fill-control: var(--fill-control);
+  --color-fill-inverted: var(--fill-inverted);
+  --color-fill-overlay: var(--fill-overlay);
+  --color-fill-accent: var(--fill-accent);
+  --color-fill-accent-pressed: var(--fill-accent-pressed);
+  --color-fill-accent-tint: var(--fill-accent-tint);
+  --color-fill-destructive: var(--fill-destructive);
+  --color-fill-destructive-tint: var(--fill-destructive-tint);
+
+  --color-border-primary: var(--border-primary);
+  --color-border-secondary: var(--border-secondary);
+  --color-border-tertiary: var(--border-tertiary);
+  --color-border-selected: var(--border-selected);
+
+  --color-message-incoming: var(--message-incoming);
+  --color-message-outgoing: var(--message-outgoing);
+  --color-onmessage-incoming: var(--onmessage-incoming-fill);
+  --color-onmessage-outgoing: var(--onmessage-outgoing-fill);
+
+  --shadow-elevated: var(--shadow-elevated);
+  --shadow-dialog: var(--shadow-dialog);
+
+  /* Signal's type scale: size / line-height / tracking. */
+  --text-title1: 26px;
+  --text-title1--line-height: 32px;
+  --text-title1--letter-spacing: -0.56px;
+  --text-title2: 20px;
+  --text-title2--line-height: 26px;
+  --text-title2--letter-spacing: -0.34px;
+  --text-title3: 18px;
+  --text-title3--line-height: 25px;
+  --text-title3--letter-spacing: -0.25px;
+  --text-body1: 14px;
+  --text-body1--line-height: 20px;
+  --text-body1--letter-spacing: -0.08px;
+  --text-body2: 13px;
+  --text-body2--line-height: 18px;
+  --text-body2--letter-spacing: -0.03px;
+  --text-small: 12px;
+  --text-small--line-height: 16px;
+  --text-caption: 11px;
+  --text-caption--line-height: 14px;
+  --text-caption--letter-spacing: 0.06px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    background: var(--surface-primary);
+    color: var(--label-primary);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 20px;
+    letter-spacing: -0.08px;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: default;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--border-selected);
+    outline-offset: -2px;
+    border-radius: 6px;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--fill-accent) 30%, transparent);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Thin overlay-style scrollbars like Signal Desktop's. */
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--fill-tertiary) transparent;
+}
+
+/* Message text size follows Appearance → Message font size. */
+.message-text {
+  font-size: calc(14px * var(--text-scale));
+  line-height: calc(20px * var(--text-scale));
+}
+
+@keyframes typing-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.4;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+
+.typing-dot {
+  animation: typing-dot 1.4s ease-in-out infinite;
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-pop-in {
+  animation: pop-in 140ms ease-out;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 140ms ease-out;
+}
+
+@keyframes highlight-flash {
+  0%,
+  40% {
+    filter: brightness(0.82);
+  }
+  100% {
+    filter: none;
+  }
+}
+
+.animate-highlight {
+  animation: highlight-flash 1.6s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

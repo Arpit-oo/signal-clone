@@ -9,9 +9,16 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.104.1",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.4.0",
+    "emoji-picker-react": "^4.22.3",
     "next": "16.4.0",
+    "radix-ui": "^1.7.0",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "sonner": "^2.0.8",
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
@@ -20,6 +27,8 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.0",
+    "prettier": "^3.9.9",
+    "prettier-plugin-tailwindcss": "^0.8.1",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
