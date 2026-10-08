@@ -54,6 +54,20 @@ Next.js serves the public website and authenticated messaging screens. The typed
 
 The server runs as one worker because presence and WebSocket connections are held in memory. SQLite uses foreign keys and WAL mode. Client retry IDs prevent duplicate messages; unique conversation identity keys prevent duplicate direct chats. Browser preferences persist locally, while conversations, contacts, profile data, and Stories persist on the server.
 
+The frontend separates screen composition from asynchronous behavior:
+
+| Location | Responsibility |
+| --- | --- |
+| `components/AppShell.tsx`, `components/shell/` | Compose the navigation, conversation list, selected chat, menus, and dialogs |
+| `hooks/shell/` | Resolve conversation routes, cancel stale searches, manage menu focus, and coordinate chat-list actions |
+| `components/chat/ChatPane.tsx` | Compose a conversation; its keyed boundary resets transient state when switching chats |
+| `components/chat/useTimelineScroll.ts` | Preserve visible messages across pagination, media loading, and resizing; acknowledge visible history |
+| `components/chat/useConversationActions.ts` | Handle reply/edit context, reactions, message dialogs, and failures |
+| `stores/`, `lib/ws.ts`, `components/Providers.tsx` | Own shared session/chat state, the single socket, subscriptions, and reconnect recovery |
+| `app/styles/`, `components/chat/chat.css` | Organize shared shell styles and chat styles; ordered shell imports keep responsive overrides last |
+
+These paths are relative to `frontend/src/`. UI components reuse the shared stores and socket rather than opening their own real-time connections.
+
 | Table | Key and relationships | Purpose |
 | --- | --- | --- |
 | `users` | `id`; unique phone and username | Profiles, privacy preferences, last seen |
@@ -72,6 +86,47 @@ The server runs as one worker because presence and WebSocket connections are hel
 | `story_views` | `(story_id, user_id)` → story recipient | Idempotent first-view timestamp and seen state |
 
 Story feeds and downloads reject expired or blocked posts immediately; the background sweeper removes expired records and files. Authors can see only viewing receipts permitted by the existing read-receipts setting. The selected audience is visible only to the author. This iteration supports sharing with selected individuals; group-story distribution and drawing/sticker tools are outside this implementation.
+
+## API overview
+
+REST requests use `/api` on both the frontend proxy and FastAPI. Protected endpoints require `Authorization: Bearer {sessionToken}`. Attachment and Story media endpoints also accept `?token={sessionToken}` for browser image/audio/video elements; the server checks the same membership and audience permissions. Request schemas, responses, and query parameters are available at [the local API docs](http://127.0.0.1:8000/docs), with the complete endpoint inventory in [ROUTES.md](ROUTES.md).
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `POST` | `/api/auth/request-otp`, `/api/auth/verify` | Start phone verification and obtain a session; fixed OTP `123456` |
+| `GET`, `PATCH` | `/api/me` | Read/update your profile and privacy preferences |
+| `GET` | `/api/users/search`, `/api/users/lookup` | Discover registered people by name or exact phone/username |
+| `GET`, `POST` | `/api/contacts` | List or add your contacts |
+| `GET`, `POST` | `/api/conversations` | List chats or create a direct/group conversation |
+| `GET`, `PATCH` | `/api/conversations/{id}` | Read authorized chat details or update group metadata |
+| `PATCH` | `/api/conversations/{id}/settings` | Set your pin, archive, mute, and unread preferences |
+| `POST` | `/api/conversations/{id}/members` | Add group members; member-specific `PATCH`/`DELETE` manage roles/removal |
+| `GET`, `POST` | `/api/conversations/{id}/messages` | Page through persistent history or send a message |
+| `GET` | `/api/search`, `/api/conversations/{id}/messages/search` | Search across your data or within one conversation |
+| `POST` | `/api/messages/delivered`, `/api/conversations/{id}/read` | Acknowledge received messages and advance the read cursor |
+| `PATCH`, `DELETE` | `/api/messages/{id}` | Edit your message or delete for yourself/everyone |
+| `PUT`, `DELETE` | `/api/messages/{id}/reaction` | Set/remove your emoji reaction |
+| `POST`, `GET` | `/api/messages/{id}/forward`, `/api/messages/{id}/info` | Forward a visible message or inspect your sent-message receipts |
+| `POST` | `/api/attachments` | Upload multipart files for a subsequent message |
+| `GET`, `POST` | `/api/stories` | List visible Stories or publish multipart text/media with an explicit audience |
+| `POST`, `GET` | `/api/stories/{id}/views` | Record a view or list privacy-permitted viewers of your Story |
+| `DELETE` | `/api/stories/{id}` | Delete your Story and its media |
+
+For example, sending text through `POST /api/conversations/{id}/messages` uses:
+
+```json
+{"client_id":"unique-client-message-id","body":"Hello!"}
+```
+
+The response includes the persisted message ID, echoed `client_id`, server timestamp, and sender-visible status. Retrying the same `client_id` returns the existing message. Replies add `reply_to_id`; uploaded files add `attachment_ids`. History supports `before`, `after`, and `around` message IDs for paging and search jumps. Uploads remain private until claimed by an authorized send.
+
+Real-time clients connect to `ws://127.0.0.1:8000/ws?token={sessionToken}` and exchange `{type, data}` JSON frames. The same send above uses:
+
+```json
+{"type":"message.send","data":{"conversation_id":12,"client_id":"unique-client-message-id","body":"Hello!"}}
+```
+
+`message.new` acknowledges the send and notifies recipients; matching `client_id` replaces the optimistic message. Clients send `typing.start`/`typing.stop`, `receipt.delivered` with `message_ids`, and `receipt.read` with `conversation_id`/`up_to_id`. The server emits message/reaction/receipt changes, presence, conversation/profile changes, and `story.changed` notifications. On reconnection the client reloads authorized conversation/history data and retries queued sends. REST errors use FastAPI's `detail` field; socket failures use `error` frames referencing the rejected event.
 
 ## Local files and configuration
 
@@ -114,7 +169,7 @@ npm run build
 npm run test:e2e
 ```
 
-Backend tests cover authentication, history visibility, message operations, concurrent retries and upload claims, media permissions, receipts, groups, malformed WebSocket events, migrations, seed idempotency, and Story audiences/expiry/receipt privacy/restart persistence. Frontend unit tests cover duplicate delivery, monotonic receipts, racing page loads/search jumps, upload previews, offline sends/uploads, failed reads, and session recovery. Browser tests exercise the homepage with the API unavailable, responsive navigation, language-dialog focus, separate messaging sessions, groups, settings, new accounts, short-screen onboarding, history resizing, attachment drafts, microphone failures, live Stories, photo/video playback, private receipts, and closing a dialog before its response arrives.
+Backend tests cover authentication, history visibility, message operations, concurrent retries and upload claims, media permissions, receipts, groups, malformed WebSocket events, migrations, seed idempotency, and Story audiences/expiry/receipt privacy/restart persistence. Frontend unit tests cover duplicate delivery, monotonic receipts, racing page loads/search jumps, upload previews, offline sends/uploads, failed reads, and session recovery. Browser tests exercise the homepage with the API unavailable, responsive navigation, language-dialog focus, separate messaging sessions, groups, settings, new accounts, short-screen onboarding, history resizing, late search responses, search retries, unloaded-history jumps, menu focus, attachment drafts, microphone failures, live Stories, photo/video playback, private receipts, and closing a dialog before its response arrives.
 
 `npm audit --omit=dev` checks production dependencies. The full audit currently reports a development-only `braces` issue through Next's ESLint tooling; [the upstream advisory](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) lists no patched version. The project retains the matching Next/ESLint release.
 

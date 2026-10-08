@@ -24,8 +24,11 @@ Browser variables are bundled into production builds. Rebuild after changing the
 
 - `src/app/`: homepage/download/login/signup/messaging/Stories pages, root layout, design tokens.
 - `src/components/site/`, `public/signal/`: responsive website navigation/footer and local reference assets.
-- `src/components/`: app/sidebar, contacts/groups, settings/profile, dialogs, and icons.
-- `src/components/chat/`: timeline, composer, message actions, media, voice notes, search, and scoped styles.
+- `src/components/AppShell.tsx`, `src/components/shell/`: screen composition, navigation, conversation list/search, menus, and shell dialogs.
+- `src/hooks/shell/`: route resolution, stale-search cancellation, list derivation, menu focus, and conversation actions.
+- `src/components/`: contacts/groups, settings/profile, dialogs, and icons.
+- `src/components/chat/`: chat header, timeline, composer, message actions, media, voice notes, search, and styles. `useTimelineScroll` owns history loading and scroll preservation; `useConversationActions` owns mutations and composer/dialog state.
+- `src/app/styles/`: shared controls, shell layout, conversations, search, details, settings, auth, and responsive CSS. `shell.css` imports these in cascade order with responsive rules last.
 - `src/stores/`: session, persisted preferences, messages/outbox, receipts and events.
 - `src/lib/`: typed API client, server contracts, reconnecting WebSocket client.
 

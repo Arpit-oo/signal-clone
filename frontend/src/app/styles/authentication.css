@@ -1,0 +1,322 @@
+/* Local authentication and profile onboarding. */
+.login-page {
+  height: 100dvh;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 470px;
+  column-gap: 8%;
+  align-items: center;
+  background: #f7f8fc;
+  padding: 90px max(7vw, 30px) 65px;
+  overflow-y: auto;
+  position: relative;
+  color: #202a40;
+}
+.login-brand {
+  position: absolute;
+  top: 32px;
+  left: max(7vw, 30px);
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  font-size: 24px;
+  font-weight: 650;
+  letter-spacing: -0.9px;
+}
+.login-brand .signal-mark {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+}
+.brand-clone {
+  display: block;
+  font-size: 7px;
+  letter-spacing: 2px;
+  line-height: 12px;
+  font-weight: 550;
+  color: #8a93a6;
+}
+.login-story {
+  padding-bottom: 20px;
+  max-width: 540px;
+}
+.login-eyebrow {
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: 2px;
+  color: #8a93a6;
+}
+.login-story h1 {
+  font-size: clamp(40px, 4.8vw, 69px);
+  line-height: 1.08;
+  letter-spacing: -3px;
+  font-weight: 650;
+  margin: 20px 0 24px;
+  color: #1c2840;
+}
+.login-story > p {
+  font-size: 14px;
+  line-height: 25px;
+  color: #7b8598;
+}
+.login-local {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  color: #8a93a6;
+  margin-top: 29px;
+}
+.login-art {
+  height: 205px;
+  max-width: 370px;
+  position: relative;
+  margin-top: 39px;
+}
+.art-card {
+  position: absolute;
+  display: flex;
+  gap: 11px;
+  align-items: center;
+  font-size: 13px;
+  box-shadow: 0 10px 30px rgb(69 90 140 / 0.08);
+  border-radius: 15px;
+  padding: 15px 18px;
+  line-height: 21px;
+}
+.art-card small {
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
+  font-size: 9px;
+  line-height: 18px;
+  margin-top: 5px;
+}
+.art-card-one {
+  left: 0;
+  top: 28px;
+  background: #fff;
+  color: #526078;
+  transform: rotate(-4deg);
+  z-index: 2;
+  border: 1px solid #e9ecf5;
+}
+.art-card-one small {
+  color: #acb3c2;
+}
+.art-avatar {
+  width: 33px;
+  height: 33px;
+  border-radius: 50%;
+  background: #d8e5fa;
+  color: #6786bc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 550;
+}
+.art-card-two {
+  background: #3769ec;
+  color: white;
+  right: 0;
+  bottom: 23px;
+  transform: rotate(4deg);
+  z-index: 2;
+  border-bottom-right-radius: 4px;
+}
+.art-card-two small {
+  color: #bdcef9;
+}
+.art-orbit {
+  position: absolute;
+  width: 174px;
+  height: 174px;
+  left: 79px;
+  top: 8px;
+  border: 1px dashed #dce3f1;
+  border-radius: 50%;
+}
+.art-orbit:after {
+  content: "";
+  position: absolute;
+  inset: 23px;
+  border: 1px solid #e5eaf4;
+  border-radius: 50%;
+}
+.art-heart {
+  position: absolute;
+  color: #c97794;
+  right: 49px;
+  top: 11px;
+  background: #f0e4ed;
+  width: 35px;
+  height: 35px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(12deg);
+  font-size: 19px;
+}
+.login-card {
+  padding: 37px 38px;
+  background: white;
+  border: 1px solid #e6eaf3;
+  border-radius: 23px;
+  box-shadow: 0 18px 65px rgb(53 75 120 / 0.055);
+  position: relative;
+  z-index: 3;
+}
+.login-card h2 {
+  font-size: 26px;
+  line-height: 34px;
+  letter-spacing: -0.85px;
+  font-weight: 650;
+  margin: 10px 0 12px;
+  color: #26324c;
+}
+.login-card > p {
+  font-size: 12px;
+  line-height: 21px;
+  color: #8a93a6;
+  margin-bottom: 28px;
+}
+.login-card .ui-field {
+  color: #536179;
+  margin: 20px 0;
+}
+.login-card .ui-field input,
+.login-card .ui-field textarea {
+  background: #fafbfd;
+  color: #26324c;
+  border-color: #e3e7f0;
+}
+.login-card .ui-field small {
+  color: #929bac;
+}
+.login-card .ui-field input::placeholder {
+  color: #a8b0bf;
+}
+.login-card .login-submit {
+  width: 100%;
+  margin-top: 4px;
+  min-height: 44px;
+  font-size: 12px;
+}
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 31px 0 22px;
+  color: #a2aaba;
+  font-size: 8px;
+  letter-spacing: 1.2px;
+  white-space: nowrap;
+}
+.login-divider:before,
+.login-divider:after {
+  content: "";
+  height: 1px;
+  background: #edf0f5;
+  flex: 1;
+}
+.demo-accounts {
+  display: flex;
+  gap: 9px;
+}
+.demo-accounts button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: 7px;
+  padding: 9px 7px;
+  border: 1px solid #e8edf5;
+  border-radius: 10px;
+  font-size: 11px;
+  color: #8290a6;
+}
+.demo-accounts button:hover,
+.demo-accounts button.selected {
+  background: #f6f8fd;
+  border-color: #adc3f8;
+  color: #396bd0;
+}
+.demo-accounts .ui-avatar {
+  font-size: 11px !important;
+  width: 27px !important;
+  height: 27px !important;
+}
+.login-card .login-disclaimer {
+  margin: 25px 0 0;
+  font-size: 9px;
+  line-height: 16px;
+  color: #a4adbd;
+  max-width: 335px;
+}
+.login-footer {
+  position: absolute;
+  bottom: 25px;
+  left: max(7vw, 30px);
+  color: #a5adbd;
+  font-size: 9px;
+  letter-spacing: 0.1px;
+}
+.demo-code {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  border: 1px solid #e3eafb;
+  background: #f5f8ff;
+  color: #7794d1;
+  padding: 17px;
+  border-radius: 12px;
+  margin: 20px 0;
+}
+.demo-code span {
+  font-size: 10px;
+  color: #8e9bb5;
+}
+.demo-code strong {
+  display: block;
+  font-size: 22px;
+  letter-spacing: 4px;
+  line-height: 27px;
+  margin-top: 4px;
+  color: #3769ec;
+  font-weight: 550;
+}
+.otp-input {
+  font-size: 25px !important;
+  letter-spacing: 7px;
+  text-align: center;
+  padding: 14px !important;
+}
+.login-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  gap: 16px;
+  color: #94a0b6;
+}
+.login-card .profile-editor .ui-field {
+  margin: 15px 0;
+}
+.login-card .profile-avatar-edit {
+  margin: 16px 0 20px;
+}
+.login-card .color-swatch {
+  width: 23px;
+  height: 23px;
+}
+.login-card .color-swatches {
+  gap: 7px;
+}
+.login-card .upload-button {
+  color: #536179;
+  background: #f4f6fb;
+  border-color: #e5eaf3;
+}

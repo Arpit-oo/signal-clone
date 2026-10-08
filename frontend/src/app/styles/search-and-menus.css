@@ -1,0 +1,110 @@
+.sidebar-search-results {
+  padding: 0 8px;
+}
+.sidebar-search-results .section-label {
+  font-size: 9px;
+  padding: 0 6px;
+}
+.search-message-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  padding: 11px 7px;
+  border-radius: 8px;
+  color: var(--label-secondary);
+}
+.search-message-row:hover {
+  background: var(--fill-primary);
+}
+.search-message-row > span {
+  flex: 1;
+  min-width: 0;
+}
+.search-message-row strong {
+  display: block;
+  font-size: 12px;
+  color: var(--label-primary);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.search-message-row small {
+  font-size: 10px;
+}
+.menu-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  cursor: default;
+}
+.ui-menu {
+  padding: 7px;
+  background: var(--surface-menu);
+  box-shadow: var(--shadow-elevated);
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+}
+.conversation-context-menu {
+  position: fixed;
+  z-index: 60;
+  left: 200px;
+  top: 155px;
+  width: 238px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100dvh - 16px);
+  overflow-y: auto;
+}
+.conversation-refresh-error {
+  padding: 10px 12px 17px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border-primary);
+}
+.conversation-refresh-error .ui-button {
+  font-size: 11px;
+  min-height: 32px;
+}
+.details-load-error {
+  padding: 12px;
+  margin: 15px 0;
+  border: 1px solid var(--border-secondary);
+  border-radius: 9px;
+  background: var(--surface-primary);
+}
+.details-load-error .ui-error {
+  margin-top: 0;
+}
+.details-load-error .ui-button {
+  min-height: 32px;
+  font-size: 11px;
+}
+.ui-menu strong {
+  display: block;
+  padding: 8px 9px;
+  color: var(--label-secondary);
+  font-size: 11px;
+  font-weight: 550;
+  border-bottom: 1px solid var(--border-primary);
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ui-menu button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  text-align: left;
+  width: 100%;
+  padding: 9px;
+  border-radius: 6px;
+}
+.ui-menu button:hover {
+  background: var(--fill-primary);
+}
+.ui-menu button:disabled {
+  opacity: 0.45;
+}
