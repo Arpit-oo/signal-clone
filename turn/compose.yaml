@@ -1,0 +1,41 @@
+name: signal-clone-turn
+
+services:
+  relay:
+    image: coturn/coturn:4.18.0-r0
+    command: ["-c", "/etc/coturn/turnserver.conf"]
+    init: true
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    ports:
+      - "3478:3478/udp"
+      - "3478:3478/tcp"
+      - "49160-49200:49160-49200/udp"
+    volumes:
+      - type: bind
+        source: ./.runtime/turnserver.conf
+        target: /etc/coturn/turnserver.conf
+        read_only: true
+        bind:
+          create_host_path: false
+    healthcheck:
+      test: ["CMD", "turnutils_stunclient", "-p", "3478", "127.0.0.1"]
+      interval: 10s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    cap_drop:
+      - ALL
+    # The official turnserver executable has this file capability; removing it
+    # from the bounding set prevents the unprivileged binary from starting.
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

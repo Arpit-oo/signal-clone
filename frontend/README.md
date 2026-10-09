@@ -18,10 +18,12 @@ Start the FastAPI backend on port 8000, then open http://127.0.0.1:3000 for the 
 | --- | --- | --- |
 | `API_ORIGIN` | `http://127.0.0.1:8000` | Server-side REST/media proxy |
 | `NEXT_PUBLIC_WS_URL` | Browser hostname on port 8000 | Browser WebSocket base, without `/ws` |
-| `NEXT_PUBLIC_RTC_ICE_SERVERS` | `[]` | JSON STUN/TURN configuration for calls across networks |
+| `NEXT_PUBLIC_RTC_ICE_SERVERS` | Google STUN fallback | JSON STUN/TURN configuration; absent/empty/invalid JSON uses Google STUN |
 | `NEXT_DIST_DIR` | `.next` | Build output; browser tests use `.next-e2e` |
 
 Browser variables are bundled into production builds. Rebuild after changing the WebSocket hostname or ICE servers. Protected media URLs include the current session token; profile/group avatars and bundled demo portraits are public. Git-triggered Vercel deployment is disabled in `vercel.json`; this does not affect local builds or Docker.
+
+Use the optional [TURN relay setup](../turn/README.md) when direct media connections fail across networks. Its forced-relay browser check proves actual audio/video transport rather than signaling alone.
 
 ## Code
 

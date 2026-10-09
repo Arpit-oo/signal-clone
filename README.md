@@ -22,6 +22,8 @@ docker compose down
 
 `down` retains the named volume holding SQLite, uploads, and the generated signing secret. Startup applies migrations and seeds only an empty database. Both production containers run as non-root users. Optional ports/environment overrides: [.env.example](.env.example). See [DOCKER.md](DOCKER.md) for configuration, persistence, and troubleshooting.
 
+For calls across networks that cannot connect directly, see the optional [TURN relay setup and forced-relay media checks](turn/README.md). Configuring a local relay does not update the hosted application.
+
 ## Local setup
 
 Windows requires Node.js **22.12+**, Python **3.12+**, and `uv`. From your checkout:
@@ -228,7 +230,7 @@ Final local validation on **2026-10-09**:
 
 - **Authentication:** fixed OTP, no SMS/email or ownership verification. JWT sessions last 30 days; logout removes the local token. Phone signup satisfies the brief's phone-or-username requirement; usernames are optional discovery identifiers.
 - **Encryption:** actual Signal Protocol/key exchange is outside scope. Messages/files are server-stored; the assignment allows simulation. Homepage claims describe the official Signal product.
-- **Calling:** one-to-one voice/video with accept/decline, mute, camera, busy/offline feedback, hangup and cleanup. Media needs localhost/HTTPS and browser permission. Local calls need no external ICE server; restrictive networks require STUN/TURN via `NEXT_PUBLIC_RTC_ICE_SERVERS`. Calls are ephemeral; group calls and linked devices are placeholders.
+- **Calling:** one-to-one voice/video with accept/decline, mute, camera, busy/offline feedback, hangup and cleanup. Media needs localhost/HTTPS and browser permission. Google STUN servers are the default when ICE settings are absent, empty, or invalid JSON; restrictive networks require an authenticated TURN relay via `NEXT_PUBLIC_RTC_ICE_SERVERS`. The optional [Coturn setup](turn/README.md) includes voice/video checks forced through UDP/TCP relay paths. Calls are ephemeral; group calls and linked devices are placeholders.
 - **Stories:** selected-individual audience, 24-hour expiry, privacy-aware views, author deletion. Group distribution/drawing/sticker creation are outside scope. Story expiry starts at publication; disappearing chat messages start their timer at first read.
 - **Runtime:** one backend worker. Multi-worker scaling needs shared socket/event/state infrastructure. SQLite and uploads require persistent storage.
 - **Client state:** session/preferences survive reloads. Drafts, queued sends, and upload previews are memory-resident; full reload clears them. An open tab reconnects, refreshes missed history, and retries queued sends.

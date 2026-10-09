@@ -37,7 +37,7 @@ Defaults work without a configuration file. Copy the root `.env.example` to `.en
 | `SEED_ON_STARTUP` | `true` | Create demo users/chats/media in an empty database |
 | `JWT_SECRET` | Generated and persisted | Optional explicit session-signing secret |
 | `NEXT_PUBLIC_WS_URL` | `ws://localhost:{BACKEND_PORT}` | Browser-visible WebSocket base URL, without `/ws` |
-| `NEXT_PUBLIC_RTC_ICE_SERVERS` | `[]` | JSON array of STUN/TURN servers for calling across networks; rebuild the frontend after changing it |
+| `NEXT_PUBLIC_RTC_ICE_SERVERS` | `[]` (app falls back to Google STUN) | JSON array of STUN/TURN servers for calling across networks; rebuild the frontend after changing it |
 
 For example, if another application uses port 3000 or 8000:
 
@@ -49,6 +49,8 @@ BACKEND_PORT=8002
 Rebuild and open http://localhost:3010. The browser WebSocket URL automatically uses the selected backend port unless explicitly overridden. REST/media requests go through the frontend to `http://backend:8000` over the Compose network; `backend` is an internal service hostname and cannot be used as a browser WebSocket hostname.
 
 Next.js compiles the REST rewrite target and `NEXT_PUBLIC_WS_URL` during the image build. Rebuild the frontend when changing the browser WebSocket URL or backend host port. For access from another machine, set `BIND_ADDRESS=0.0.0.0` and a WebSocket URL using the host's reachable address, then rebuild. For HTTPS hosting, use `wss://` through a proxy that supports WebSocket upgrades. Hosting remains outside this local Docker setup.
+
+Calls that ring but cannot connect across networks need a reachable TURN fallback. The optional [Coturn container](turn/README.md) generates matching ICE settings and includes browser checks that force voice/video media through UDP and TCP TURN. It has its own Compose project and leaves the application's data volume intact.
 
 When `JWT_SECRET` is unset/blank, the backend generates a random value in `/app/data/.jwt-secret` with owner-only permissions and reuses it on later starts. An explicit environment value takes precedence. Keep the same secret to preserve sessions; replacing it invalidates existing tokens. The secret is never baked into an image or printed to logs.
 

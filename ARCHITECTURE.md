@@ -108,7 +108,7 @@ When a socket reconnects, the client refreshes conversations and loaded history 
 
 The existing authenticated socket carries offers, answers and ICE candidates. The backend checks direct-chat membership, blocks, busy state, payload bounds and owning sockets. The first recipient tab to accept owns the call; sibling tabs dismiss their incoming windows. Ringing expires after 45 seconds, and owner disconnects terminate the call.
 
-Browsers exchange media using native WebRTC. Media is not recorded or stored; there is no persisted call-history table. Microphone/camera permissions and localhost/HTTPS are required. Local calls use an empty ICE list by default; STUN/TURN configuration is needed for connections across restrictive networks. The client binds asynchronous media/signaling work to a call ID so late work from an ended call cannot consume a newer call's connection candidates.
+Browsers exchange media using native WebRTC. Media is not recorded or stored; there is no persisted call-history table. Microphone/camera permissions and localhost/HTTPS are required. Google STUN is the default when ICE settings are absent, empty, or invalid JSON. An authenticated TURN server supplies the fallback media path across restrictive networks; [turn/README.md](turn/README.md) documents the separate Coturn container and tests that force actual media through it. ICE configuration is bundled into the frontend at build time. The client binds asynchronous media/signaling work to a call ID so late work from an ended call cannot consume a newer call's connection candidates.
 
 ## Migration and seed decisions
 
