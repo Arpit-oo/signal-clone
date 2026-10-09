@@ -19,9 +19,24 @@ import ProfileEditor from "@/components/ProfileEditor";
 import "@/app/auth.css";
 
 const demos = [
-  { name: "Alex Rivera", phone: "+15550000001", color: "A110", avatar: "/api/demo-avatars/alex-v1.jpg" },
-  { name: "Priya Sharma", phone: "+919876540102", color: "A150", avatar: "/api/demo-avatars/priya-v1.jpg" },
-  { name: "Marcus Chen", phone: "+15550000003", color: "A130", avatar: "/api/demo-avatars/marcus-v1.jpg" },
+  {
+    name: "Alex Rivera",
+    phone: "+15550000001",
+    color: "A110",
+    avatar: "/api/demo-avatars/alex-v1.jpg",
+  },
+  {
+    name: "Priya Sharma",
+    phone: "+919876540102",
+    color: "A150",
+    avatar: "/api/demo-avatars/priya-v1.jpg",
+  },
+  {
+    name: "Marcus Chen",
+    phone: "+15550000003",
+    color: "A130",
+    avatar: "/api/demo-avatars/marcus-v1.jpg",
+  },
 ];
 
 export default function AuthScreen({
@@ -257,9 +272,18 @@ export default function AuthScreen({
             {!creatingAccount && (
               <>
                 <div className="login-divider">
-                  <span>OR USE A SEEDED ACCOUNT</span>
+                  <h3>Try a demo account</h3>
                 </div>
-                <div className="demo-accounts">
+                <p id="auth-demo-hint" className="auth-demo-hint">
+                  Choose a profile, then Continue. No SMS is sent; the next
+                  screen shows the code to enter.
+                </p>
+                <div
+                  className="demo-accounts"
+                  role="group"
+                  aria-label="Demo accounts"
+                  aria-describedby="auth-demo-hint"
+                >
                   {demos.map((demo) => (
                     <button
                       key={demo.phone}
@@ -273,7 +297,12 @@ export default function AuthScreen({
                         setError("");
                       }}
                     >
-                      <Avatar name={demo.name} color={demo.color} url={demo.avatar} size={35} />
+                      <Avatar
+                        name={demo.name}
+                        color={demo.color}
+                        url={demo.avatar}
+                        size={35}
+                      />
                       <span>{demo.name.split(" ")[0]}</span>
                     </button>
                   ))}
@@ -313,10 +342,8 @@ export default function AuthScreen({
             <div className="demo-code">
               <Icon name="info" />
               <span>
-                Verification code<strong>{devCode}</strong>
-                <small>
-                  Verification is simulated; enter this code to continue.
-                </small>
+                Mock verification code<strong>{devCode}</strong>
+                <small>No SMS is sent. Enter the code above to continue.</small>
               </span>
             </div>
             <form onSubmit={verify}>

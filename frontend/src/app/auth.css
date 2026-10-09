@@ -243,6 +243,22 @@
   margin: 24px 0 18px;
 }
 
+.login-divider h3 {
+  margin: 0;
+  color: var(--label-primary);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 22px;
+  letter-spacing: normal;
+}
+
+.login-card .auth-demo-hint {
+  margin: -8px 0 14px;
+  color: var(--label-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
 .demo-accounts button {
   min-width: 0;
   min-height: 44px;

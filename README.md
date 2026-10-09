@@ -65,6 +65,9 @@ npm run dev
 
 All nine accounts use mock OTP **123456**. Names, portraits, messages, and US demo numbers are fictional seed data; phone ownership is never verified.
 
+The login page labels these profiles **Try a demo account**. Choose a profile,
+press Continue, and enter the mock code shown on the next screen; no SMS is sent.
+
 | Name | Phone | Username |
 | --- | --- | --- |
 | Alex Rivera | +15550000001 | alex |
@@ -228,6 +231,14 @@ Final local validation on **2026-10-09**:
 | Existing database after restart | Integrity/foreign keys valid; user, conversation, message, contact and Story counts preserved |
 | Demo avatars and responsive UI | All nine images load through native and Docker frontends; no mobile overflow or page errors in the portrait check |
 
+Hosted smoke check on **2026-10-09** passed fresh mobile/desktop signup, contacts,
+live direct/group messages, chimes, read receipts, private Story publication/views/
+deletion, voice/video ringing and two-way media, and mobile/settings layout.
+The two smoke accounts were isolated from seeded users. Calls used simulated
+devices on one machine and connected directly; a public TURN relay and calls
+between different internet connections remain unverified. See the repeatable
+[browser check and storage/relay setup](DEPLOY.md#browser-smoke-check).
+
 ## Assumptions and limits
 
 - **Authentication:** fixed OTP, no SMS/email or ownership verification. JWT sessions last 30 days; logout removes the local token. Phone signup satisfies the brief's phone-or-username requirement; usernames are optional discovery identifiers.
@@ -248,6 +259,11 @@ Final local validation on **2026-10-09**:
 | Submit GitHub and deployed application links | [Repository](https://github.com/Arpit-oo/Signal-Clone-Scalar) · [Application](https://signal-clone-scalar.vercel.app) · [API docs](https://signal-clone-scalar-api.onrender.com/docs) |
 
 Local development uses [localhost:3000](http://localhost:3000) for the app and [localhost:8000/docs](http://localhost:8000/docs) for the API. Hosted deployment: [application](https://signal-clone-scalar.vercel.app), [API docs](https://signal-clone-scalar-api.onrender.com/docs). The free Render service uses ephemeral storage, so data is not guaranteed across restarts. Git-triggered deployment is enabled in both `frontend/vercel.json` and `render.yaml`; see [Vercel's controls](https://vercel.com/docs/project-configuration/git-configuration) and [Render's deploys](https://render.com/docs/deploys).
+
+The optional [persistent Render blueprint](render.persistent.yaml) puts SQLite
+and uploads on the same mounted disk and requires a paid Render service. The
+default free blueprint is unchanged. [Deployment instructions](DEPLOY.md)
+cover migrating existing data and configuring a free public TURN provider account.
 
 ## Attribution and repository contents
 

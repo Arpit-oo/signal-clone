@@ -1,20 +1,27 @@
-# Render Blueprint for the FastAPI backend (free web service).
-# Free services have no persistent disk: SQLite and uploads can reset on restart
-# or redeploy. Startup seeds an empty database while preserving existing data.
-# Use render.persistent.yaml deliberately for the optional paid disk-backed setup.
+# Optional paid Render Blueprint. Select this file deliberately when enabling
+# persistence; render.yaml remains the existing free, ephemeral demo setup.
+# For an existing service, see DEPLOY.md before changing storage paths.
 services:
   - type: web
     name: signal-clone-scalar-api
     runtime: python
-    plan: free
+    plan: starter
     rootDir: backend
     buildCommand: pip install uv && uv sync --locked --no-dev
     startCommand: .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1
     healthCheckPath: /health
     autoDeployTrigger: commit
+    disk:
+      name: signal-data
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.8
+      - key: DATABASE_URL
+        value: sqlite+aiosqlite:////var/data/signal.db
+      - key: UPLOAD_DIR
+        value: /var/data/uploads
       - key: SEED_ON_STARTUP
         value: "true"
       - key: AUTO_MIGRATE_ON_STARTUP
