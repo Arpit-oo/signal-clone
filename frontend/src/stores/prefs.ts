@@ -39,6 +39,7 @@ interface PrefsState {
   notificationsEnabled: boolean;
   notificationContent: NotificationContent;
   notificationSound: boolean;
+  callRingtone: boolean;
   /** Signal Desktop sends on Enter; Shift+Enter inserts a newline. */
   sendWithEnter: boolean;
   spellCheck: boolean;
@@ -56,6 +57,7 @@ export const usePrefs = create<PrefsState>()(
       notificationsEnabled: true,
       notificationContent: "name_and_message",
       notificationSound: true,
+      callRingtone: true,
       sendWithEnter: true,
       spellCheck: true,
       leftPaneWidth: 320,

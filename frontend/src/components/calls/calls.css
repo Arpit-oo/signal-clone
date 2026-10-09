@@ -35,6 +35,9 @@
   font-size: 14px;
   font-variant-numeric: tabular-nums;
 }
+.call-enable-sound {
+  margin-top: 16px;
+}
 .call-person.is-ringing > .ui-avatar {
   animation: call-ring 2.4s ease-in-out infinite;
 }

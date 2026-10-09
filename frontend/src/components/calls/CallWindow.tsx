@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useCall } from "@/stores/call";
+import { usePrefs } from "@/stores/prefs";
+import { sounds } from "@/lib/sounds";
 import { Avatar, Button, Icon, Modal } from "@/components/ui";
 import "./calls.css";
 
@@ -21,11 +23,21 @@ function CallMedia({
     if (!element) return;
     let active = true;
     element.srcObject = stream;
-    if (stream) void element.play().then(() => {
-      if (active) setBlocked(false);
-    }).catch((error: unknown) => {
-      if (active && !local && error instanceof DOMException && error.name === "NotAllowedError") setBlocked(true);
-    });
+    if (stream)
+      void element
+        .play()
+        .then(() => {
+          if (active) setBlocked(false);
+        })
+        .catch((error: unknown) => {
+          if (
+            active &&
+            !local &&
+            error instanceof DOMException &&
+            error.name === "NotAllowedError"
+          )
+            setBlocked(true);
+        });
     return () => {
       active = false;
       element.srcObject = null;
@@ -75,6 +87,12 @@ export function CallWindow() {
     toggleMute,
     toggleCamera,
   } = useCall();
+  const ringtone = usePrefs((state) => state.callRingtone);
+  const soundReady = useSyncExternalStore(
+    sounds.subscribe,
+    sounds.ready,
+    () => false,
+  );
   const [now, setNow] = useState(Date.now);
   useEffect(() => {
     if (!startedAt) return;
@@ -131,6 +149,16 @@ export function CallWindow() {
           >
             {subtitle}
           </p>
+          {ringtone &&
+            !soundReady &&
+            (call.phase === "incoming" || call.phase === "ringing") && (
+              <Button
+                className="call-enable-sound"
+                onClick={() => void sounds.unlock()}
+              >
+                Enable call sound
+              </Button>
+            )}
         </div>
         {call.kind === "video" && localStream && !cameraOff && (
           <CallMedia stream={localStream} video local />

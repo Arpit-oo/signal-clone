@@ -13,6 +13,7 @@ import {
 } from "@/stores/prefs";
 import { useSession } from "@/stores/session";
 import { useChat } from "@/stores/chat";
+import { sounds } from "@/lib/sounds";
 import ProfileEditor from "./ProfileEditor";
 import {
   Avatar,
@@ -179,9 +180,21 @@ export default function Settings({ onClose }: { onClose: () => void }) {
     <Modal title="Settings" onClose={onClose} className="settings-modal">
       <div className="settings-layout">
         <nav className="settings-nav" aria-label="Settings sections">
-          <button type="button" className="settings-profile-card" onClick={() => setTab("profile")}>
-            <Avatar name={me.display_name} color={me.avatar_color} url={me.avatar_url} size={56} />
-            <span><strong>{me.display_name}</strong><small>{me.phone}</small></span>
+          <button
+            type="button"
+            className="settings-profile-card"
+            onClick={() => setTab("profile")}
+          >
+            <Avatar
+              name={me.display_name}
+              color={me.avatar_color}
+              url={me.avatar_url}
+              size={56}
+            />
+            <span>
+              <strong>{me.display_name}</strong>
+              <small>{me.phone}</small>
+            </span>
           </button>
           {tabs.map((item) => (
             <button
@@ -220,7 +233,9 @@ export default function Settings({ onClose }: { onClose: () => void }) {
           </div>
         </nav>
         <div className="settings-content scroll-thin">
-          <h2 key={tab} className="animate-fade-in">{tabs.find((item) => item.id === tab)?.label}</h2>
+          <h2 key={tab} className="animate-fade-in">
+            {tabs.find((item) => item.id === tab)?.label}
+          </h2>
           <div hidden={tab !== "profile"}>
             <ProfileEditor />
             <div className="mobile-account">
@@ -402,11 +417,24 @@ export default function Settings({ onClose }: { onClose: () => void }) {
               <ErrorText>{error}</ErrorText>
               <Toggle
                 label="Notification sound"
-                description="Play a subtle sound for incoming messages."
+                description="Play a chime for incoming messages when you are away from their chat."
                 checked={prefs.notificationSound}
                 onChange={(checked) =>
                   prefs.set({ notificationSound: checked })
                 }
+              />
+              <Button
+                variant="secondary"
+                disabled={!prefs.notificationSound}
+                onClick={() => void sounds.previewMessage()}
+              >
+                Test notification sound
+              </Button>
+              <Toggle
+                label="Call ringtone"
+                description="Play incoming call and outgoing ringing sounds."
+                checked={prefs.callRingtone}
+                onChange={(checked) => prefs.set({ callRingtone: checked })}
               />
             </>
           )}

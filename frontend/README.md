@@ -31,6 +31,7 @@ Use the optional [TURN relay setup](../turn/README.md) when direct media connect
 - `src/components/site/`, `public/signal/`: responsive website navigation/footer and local reference assets.
 - `src/components/AppShell.tsx`, `src/components/shell/`: screen composition, navigation, conversation list/search, menus, and shell dialogs.
 - `src/hooks/shell/`: route resolution, stale-search cancellation, list derivation, menu focus, and conversation actions.
+- `src/hooks/useAppSounds.ts`, `src/lib/sounds.ts`, `src/lib/message-alerts.ts`: browser audio activation, original incoming/outgoing call tones, chimes, cleanup, and deduplicated notification policy.
 - `src/components/`: contacts/groups, settings/profile, dialogs, and icons.
 - `src/components/chat/`: chat header, timeline, composer, message actions, media, voice notes, search, and styles. `useTimelineScroll` owns history loading and scroll preservation; `useConversationActions` owns mutations and composer/dialog state.
 - `src/components/calls/`, `src/stores/call.ts`: call window and WebRTC media/signaling lifecycle, shared across Chats and Stories.
@@ -39,6 +40,8 @@ Use the optional [TURN relay setup](../turn/README.md) when direct media connect
 - `src/lib/`: typed API client, server contracts, reconnecting WebSocket client.
 
 The provider restores sessions, applies appearance, subscribes to events, refreshes missed state on reconnect, and delivers permitted background notifications. Login outages preserve saved tokens. Failed uploads stay retryable in the open tab; outbox and drafts are memory-resident and are cleared on full reload/sign-out.
+
+Message chimes do not depend on desktop notification permission. They play for live messages outside the focused chat, respect conversation mute and the message-sound preference, and stay quiet during calls. Desktop banners use silent OS notifications to avoid duplicate sounds. Settings > Notifications includes **Test notification sound** and a separate **Call ringtone** switch, both persisted locally. Call loops use the Web Audio clock and stop when the call leaves its incoming/ringing phase. Browser audio unlocks on user interaction; **Enable call sound** is available when an incoming call encounters blocked autoplay. Muted browser tabs/system output settings still control audible output. Playback lifecycle and notification policy have unit tests; Playwright checks actual audio waveforms, autoplay recovery, ringtone preference persistence, and live-message chimes.
 
 Stories uses the same session and WebSocket connection. Its feed refreshes on story changes and reconnect; the portrait viewer supports pause/resume and previous/next navigation. Creation requires an explicit audience and sends text or selected media to the backend. Story view/delete operations and media authorization use the REST API. `/stories` is a protected return destination through sign-in and profile setup.
 

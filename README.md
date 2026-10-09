@@ -214,15 +214,15 @@ npm run test:e2e
 npm audit --omit=dev
 ```
 
-Tests cover phone identity, group permissions/history, retries, uploads/media authorization, receipts, migration/seed preservation, Stories, calls, backgrounds, reconnect state, routes, and responsive interactions. The full dependency audit has a development-only [braces advisory](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) through Next's matching ESLint tooling; production dependencies are checked separately.
+Tests cover phone identity, group permissions/history, retries, uploads/media authorization, receipts, migration/seed preservation, Stories, calls, ringtone/chime playback and autoplay recovery, backgrounds, reconnect state, routes, and responsive interactions. The full dependency audit has a development-only [braces advisory](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) through Next's matching ESLint tooling; production dependencies are checked separately.
 
 Final local validation on **2026-10-09**:
 
 | Check | Result |
 | --- | --- |
 | Backend Ruff / pytest | Clean; 130 passed, one POSIX-only permission test skipped on Windows |
-| Frontend ESLint / TypeScript / Vitest | Clean; 40 unit tests passed |
-| Playwright Chromium | 29 passed, including real voice/video media and own-number registration/messaging |
+| Frontend ESLint / TypeScript / Vitest | Clean; 54 unit tests passed |
+| Playwright Chromium | 33 passed, including real voice/video media, audible ringtone/chime waveforms, autoplay recovery, sound preferences, and own-number registration/messaging |
 | Native and Docker production builds | Passed |
 | Production npm dependency audit | Zero vulnerabilities reported |
 | Existing database after restart | Integrity/foreign keys valid; user, conversation, message, contact and Story counts preserved |
@@ -232,11 +232,11 @@ Final local validation on **2026-10-09**:
 
 - **Authentication:** fixed OTP, no SMS/email or ownership verification. JWT sessions last 30 days; logout removes the local token. Phone signup satisfies the brief's phone-or-username requirement; usernames are optional discovery identifiers.
 - **Encryption:** actual Signal Protocol/key exchange is outside scope. Messages/files are server-stored; the assignment allows simulation. Homepage claims describe the official Signal product.
-- **Calling:** one-to-one voice/video with accept/decline, mute, camera, busy/offline feedback, hangup and cleanup. Media needs localhost/HTTPS and browser permission. Google STUN servers are the default when ICE settings are absent, empty, or invalid JSON; restrictive networks require an authenticated TURN relay via `NEXT_PUBLIC_RTC_ICE_SERVERS`. The optional [Coturn setup](turn/README.md) includes voice/video checks forced through UDP/TCP relay paths. Calls are ephemeral; group calls and linked devices are placeholders.
+- **Calling:** one-to-one voice/video with accept/decline, incoming ringtone, outgoing ringback, mute, camera, busy/offline feedback, hangup and cleanup. Tones stop when a call is accepted, declined, cancelled, or disconnected. Media needs localhost/HTTPS and browser permission. Google STUN servers are the default when ICE settings are absent, empty, or invalid JSON; restrictive networks require an authenticated TURN relay via `NEXT_PUBLIC_RTC_ICE_SERVERS`. The optional [Coturn setup](turn/README.md) includes voice/video checks forced through UDP/TCP relay paths. Calls are ephemeral; group calls and linked devices are placeholders.
 - **Stories:** selected-individual audience, 24-hour expiry, privacy-aware views, author deletion. Group distribution/drawing/sticker creation are outside scope. Story expiry starts at publication; disappearing chat messages start their timer at first read.
 - **Runtime:** one backend worker. Multi-worker scaling needs shared socket/event/state infrastructure. SQLite and uploads require persistent storage.
 - **Client state:** session/preferences survive reloads. Drafts, queued sends, and upload previews are memory-resident; full reload clears them. An open tab reconnects, refreshes missed history, and retries queued sends.
-- **Notifications:** in-app toasts; background notifications require browser permission. Attachments, Stories, and uploaded backgrounds follow server-side permissions.
+- **Notifications:** in-app toasts and message chimes outside the focused conversation; desktop notifications additionally require browser permission. Muted chats, own/system/read messages, and duplicate socket deliveries stay quiet; chimes are suppressed during calls and coalesced for message bursts. Settings > Notifications has independent message/call sound switches and a chime preview. Browser audio unlocks on a click/key interaction; an incoming call offers **Enable call sound** if autoplay is blocked. These are original synthesized tones, not Signal's audio assets. Attachments, Stories, and uploaded backgrounds follow server-side permissions.
 
 ## Submission deliverables
 
