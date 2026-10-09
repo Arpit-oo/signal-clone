@@ -90,14 +90,20 @@ async function flushRemote(pc: RTCPeerConnection, id: string) {
   }
 }
 
+const DEFAULT_ICE_SERVERS: RTCIceServer[] = [
+  { urls: "stun:stun.l.google.com:19302" },
+  { urls: "stun:stun1.l.google.com:19302" },
+];
+
 function iceServers(): RTCIceServer[] {
-  // Supply a JSON array with TURN credentials for connections across restrictive networks.
+  // A TURN server can be supplied for networks that block direct peer connections.
   try {
-    return JSON.parse(
-      process.env.NEXT_PUBLIC_RTC_ICE_SERVERS || "[]",
-    ) as RTCIceServer[];
+    const configured = JSON.parse(process.env.NEXT_PUBLIC_RTC_ICE_SERVERS || "null");
+    return Array.isArray(configured) && configured.length
+      ? (configured as RTCIceServer[])
+      : DEFAULT_ICE_SERVERS;
   } catch {
-    return [];
+    return DEFAULT_ICE_SERVERS;
   }
 }
 
