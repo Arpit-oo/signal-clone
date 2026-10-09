@@ -278,6 +278,6 @@ def upgrade():
 
 
 def downgrade():
-    # This repairs data without changing the schema. Separate identities cannot
-    # be reconstructed from merged history; restore a pre-migration backup if needed.
+    # Merged identities cannot be reconstructed, and AUTOINCREMENT keeps retired
+    # IDs reserved. Restore a pre-migration backup to undo this repair.
     pass
