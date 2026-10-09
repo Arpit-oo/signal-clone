@@ -405,6 +405,15 @@ wheels = [
 ]
 
 [[package]]
+name = "phonenumbers"
+version = "9.0.41"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/2f/df/cc0d70f1c79e436ea00d935b6352053d526252b81ce6c130d39eee846fb2/phonenumbers-9.0.41.tar.gz", hash = "sha256:dfa6f74eeac67c044b75313fe0af10774d7d1e1242241437279d4c2fb8027c01", size = 2311017, upload-time = "2026-10-08T10:51:09.778Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/60/1a/4059026e9c8a4c3faeab4a45f5aa67fb77d1f0d9c767085ded69c5c533e2/phonenumbers-9.0.41-py2.py3-none-any.whl", hash = "sha256:ccf2ea44f8aa35c487f26146a31520ecedf8e1af1f57c803678ecb5ef5c01668", size = 2594658, upload-time = "2026-10-08T10:51:07.317Z" },
+]
+
+[[package]]
 name = "pillow"
 version = "12.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -763,6 +772,7 @@ dependencies = [
     { name = "aiosqlite" },
     { name = "alembic" },
     { name = "fastapi" },
+    { name = "phonenumbers" },
     { name = "pillow" },
     { name = "pydantic-settings" },
     { name = "pyjwt" },
@@ -784,6 +794,7 @@ requires-dist = [
     { name = "aiosqlite", specifier = ">=0.22.1" },
     { name = "alembic", specifier = ">=1.20.0" },
     { name = "fastapi", specifier = ">=0.143.0" },
+    { name = "phonenumbers", specifier = ">=9.0.41" },
     { name = "pillow", specifier = ">=12.3.0" },
     { name = "pydantic-settings", specifier = ">=2.15.0" },
     { name = "pyjwt", specifier = ">=2.15.1" },

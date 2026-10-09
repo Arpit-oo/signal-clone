@@ -10,7 +10,7 @@ From the repository root:
 docker compose up --build -d --wait
 ```
 
-Open http://localhost:3000 and use a seeded phone with mock OTP `123456`: Alex `+15550000001`, Priya `+15550000002`, or Marcus `+15550000003`. Own-number registration is available at `/signup`. Use a second browser profile/private window to test live messaging between accounts. API docs: http://localhost:8000/docs.
+Open http://localhost:3000 and use a seeded phone with mock OTP `123456`: Alex `+15550000001`, Priya `+919876540102`, or Marcus `+15550000003`. Own-number registration is available at `/signup`. Use a second browser profile/private window to test live messaging or one-to-one voice/video calling between accounts. API docs: http://localhost:8000/docs.
 
 The first build downloads base images and locked npm/Python dependencies. Later builds reuse dependency layers. The runtime images contain production dependencies, application code, and assets; host `.env` files, local databases, uploads, caches, and browser-test output are excluded from build contexts.
 
@@ -37,6 +37,7 @@ Defaults work without a configuration file. Copy the root `.env.example` to `.en
 | `SEED_ON_STARTUP` | `true` | Create demo users/chats/media in an empty database |
 | `JWT_SECRET` | Generated and persisted | Optional explicit session-signing secret |
 | `NEXT_PUBLIC_WS_URL` | `ws://localhost:{BACKEND_PORT}` | Browser-visible WebSocket base URL, without `/ws` |
+| `NEXT_PUBLIC_RTC_ICE_SERVERS` | `[]` | JSON array of STUN/TURN servers for calling across networks; rebuild the frontend after changing it |
 
 For example, if another application uses port 3000 or 8000:
 

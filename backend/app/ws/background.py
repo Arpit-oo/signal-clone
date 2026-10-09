@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import logging
 from collections import defaultdict
 
@@ -7,6 +8,7 @@ from app.db.session import SessionLocal
 from app.services import conversations as conv_svc
 from app.services import messages as msg_svc
 from app.services import stories as story_svc
+from app.ws.calls import calls
 from app.ws.manager import manager
 from app.ws.router import broadcast_typing
 from app.ws.typing import typing_registry
@@ -16,6 +18,7 @@ settings = get_settings()
 
 
 async def sweep_once() -> None:
+    await calls.expire()
     for conversation_id, user_id in typing_registry.pop_expired():
         await broadcast_typing(conversation_id, user_id, False)
 
@@ -33,13 +36,14 @@ async def sweep_once() -> None:
             )
 
 
-async def run_sweeper() -> None:
-    """Expire typing indicators, disappearing messages, and stories."""
-    while True:
+async def run_sweeper(stopped: asyncio.Event) -> None:
+    """Finish an in-flight DB sweep before shutdown; never abandon SQLite workers."""
+    while not stopped.is_set():
         try:
             await sweep_once()
         except asyncio.CancelledError:
             raise
         except Exception:
             log.exception("sweeper failed")
-        await asyncio.sleep(settings.expiry_sweep_seconds)
+        with contextlib.suppress(TimeoutError):
+            await asyncio.wait_for(stopped.wait(), timeout=settings.expiry_sweep_seconds)

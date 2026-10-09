@@ -9,6 +9,8 @@ import { resetChat, useChat } from "@/stores/chat";
 import { applyChatColor, applyTheme, usePrefs } from "@/stores/prefs";
 import { useSession } from "@/stores/session";
 import { conversationRoute } from "@/lib/routes";
+import { disconnectCall, handleCallEvent } from "@/stores/call";
+import { CallWindow } from "@/components/calls/CallWindow";
 
 export function Providers({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -21,9 +23,10 @@ export function Providers({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const removeListener = socket.subscribe((event) => {
+      handleCallEvent(event);
       if (event.type === "me.updated") useSession.getState().setMe(event.data);
       useChat.getState().handleEvent(event);
-      if (event.type === "error") toast.error(event.data.detail);
+      if (event.type === "error" && !(event.data.event === "call.end" && event.data.detail === "This call has ended")) toast.error(event.data.detail);
       if (event.type !== "message.new" || event.data.type !== "text" ||
           event.data.sender_id === useSession.getState().me?.id || !document.hidden) return;
       const prefs = usePrefs.getState();
@@ -41,6 +44,7 @@ export function Providers({ children }: { children: ReactNode }) {
       }
     });
     const removeStatus = socket.onStatus((connection) => {
+      if (connection === "closed") disconnectCall();
       if (connection !== "open" || useSession.getState().status !== "authenticated") return;
       // Refetch after reconnect to recover events missed while the socket was down.
       const chat = useChat.getState();
@@ -82,5 +86,5 @@ export function Providers({ children }: { children: ReactNode }) {
   useEffect(() => { applyChatColor(chatColor); }, [chatColor]);
   useEffect(() => { document.documentElement.style.setProperty("--text-scale", String(textScale)); }, [textScale]);
 
-  return <>{children}<Toaster position="bottom-right" richColors closeButton /></>;
+  return <>{children}<CallWindow /><Toaster position="bottom-right" richColors closeButton /></>;
 }

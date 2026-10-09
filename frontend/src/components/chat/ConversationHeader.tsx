@@ -6,6 +6,7 @@ import type { Conversation, User } from "@/lib/types";
 import { displayName } from "@/stores/chat";
 import { timerLabel } from "./helpers";
 import type { CallType } from "./useConversationActions";
+import { ChatOptionsMenu } from "./ChatOptionsMenu";
 
 interface ConversationHeaderProps {
   conversation: Conversation;
@@ -52,7 +53,7 @@ export function ConversationHeader({
       >
         <Icon name="arrow-left" size={22} />
       </button>
-      <button className="chat-header-contact" onClick={onDetails}>
+      <button className="chat-header-contact" onClick={onDetails} aria-label="Conversation details">
         <Avatar
           name={conversation.name}
           color={conversation.avatar_color}
@@ -77,13 +78,13 @@ export function ConversationHeader({
         </span>
       </button>
       <div className="chat-header-actions">
-        {conversation.type !== "note_to_self" && (
+        {conversation.type === "direct" && (
           <>
             <button
               className="chat-icon-button chat-call-button"
               aria-label="Video call"
               aria-haspopup="dialog"
-              title="Video call · Coming Soon"
+              title="Video call"
               onClick={() => onCall("video")}
             >
               <svg
@@ -106,7 +107,7 @@ export function ConversationHeader({
                 className="chat-icon-button chat-call-button"
                 aria-label="Voice call"
                 aria-haspopup="dialog"
-                title="Voice call · Coming Soon"
+                title="Voice call"
                 onClick={() => onCall("voice")}
               >
                 <svg
@@ -145,13 +146,7 @@ export function ConversationHeader({
         >
           <Icon name="search" size={21} />
         </button>
-        <button
-          className="chat-icon-button"
-          onClick={onDetails}
-          aria-label="Conversation details"
-        >
-          <Icon name="more" size={21} />
-        </button>
+        <ChatOptionsMenu conversation={conversation} onDetails={onDetails} onBack={onBack} />
       </div>
     </header>
   );

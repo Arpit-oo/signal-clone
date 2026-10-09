@@ -76,6 +76,15 @@ export default function SiteFooter() {
           </div>
         ))}
       </div>
+      <div className="site-container site-assessment-note">
+        <p>
+          This Signal clone was built by Arpit Walia for the Scaler assessment
+          and evaluation. Contact:{" "}
+          <a href="mailto:awalia_be23@thapar.edu">awalia_be23@thapar.edu</a>.{" "}
+          This is an independent student project and is not affiliated with
+          Signal.
+        </p>
+      </div>
     </footer>
   );
 }

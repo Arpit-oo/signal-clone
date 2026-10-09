@@ -97,14 +97,20 @@
     display: inline-flex;
     align-items: center;
     justify-content: flex-start;
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
   }
   .sidebar-desktop-settings {
     display: none;
   }
   .sidebar-header-actions {
     justify-self: end;
+  }
+  .sidebar-header .ui-icon-button,
+  .conversation-menu-trigger,
+  .conversation-pin-trigger {
+    width: 44px;
+    height: 44px;
   }
   .sidebar-greeting {
     font-size: 12px;
@@ -113,21 +119,26 @@
     padding: 0 16px 8px;
   }
   .sidebar-tools .search-field {
-    min-height: 42px;
+    min-height: 44px;
     background: #eee;
-    padding: 10px 12px;
+    padding: 0 12px;
     border-radius: 10px;
   }
   .sidebar-tools .search-field input {
     font-size: 16px;
+    padding: 12px 0;
   }
   .sidebar-filters button {
     font-size: 11px;
   }
   .conversation-select {
-    padding: 12px 10px 24px;
+    padding: 12px 10px;
     gap: 14px;
-    min-height: 96px;
+    min-height: 84px;
+  }
+  .conversation-avatar > .ui-avatar {
+    width: 56px !important;
+    height: 56px !important;
   }
   .conversation-topline strong {
     font-size: 16px;
@@ -144,22 +155,20 @@
     padding-right: 10px;
   }
   .conversation-menu-trigger {
-    opacity: 1;
-    background: transparent;
     box-shadow: none;
-    top: auto;
-    bottom: 2px;
+    top: 6px;
     right: 10px;
-    width: 24px;
-    height: 24px;
     color: var(--label-placeholder);
   }
   .conversation-pin-trigger {
-    opacity: 1;
-    bottom: 2px;
-    right: 39px;
-    width: 24px;
-    height: 24px;
+    right: 56px;
+  }
+  .conversation-context-menu > button {
+    min-height: 44px;
+  }
+  .conversation-select {
+    -webkit-touch-callout: none;
+    user-select: none;
   }
   .conversation-section {
     font-size: 16px;

@@ -2,8 +2,8 @@
 
 import { Icon } from "@/components/ui";
 import type { ChatMessage, Conversation, User } from "@/lib/types";
-import { displayName } from "@/stores/chat";
 import { MessageBubble } from "./MessageBubble";
+import { TypingIndicator } from "./TypingIndicator";
 import { dateLabel, systemMessage } from "./helpers";
 import type { MessageInteractions } from "./useConversationActions";
 import type {
@@ -175,24 +175,11 @@ export function MessageTimeline({
             );
           })}
           {typing.length > 0 && !bucket?.hasMoreAfter && (
-            <div className="chat-typing-row" role="status" aria-label="Typing">
-              <div className="chat-typing-bubble">
-                <span className="typing-dot" />
-                <span
-                  className="typing-dot"
-                  style={{ animationDelay: "160ms" }}
-                />
-                <span
-                  className="typing-dot"
-                  style={{ animationDelay: "320ms" }}
-                />
-              </div>
-              {conversation.type === "group" && (
-                <small>
-                  {typing.map((id) => displayName(users[id])).join(", ")}
-                </small>
-              )}
-            </div>
+            <TypingIndicator
+              typing={typing}
+              users={users}
+              groupChat={conversation.type === "group"}
+            />
           )}
           {bucket?.hasMoreAfter && (
             <button

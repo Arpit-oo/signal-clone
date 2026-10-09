@@ -138,8 +138,11 @@ function upload<T>(
 
 export const api = {
   auth: {
-    requestOtp: (phone: string) =>
-      post<{ phone: string; dev_code: string }>("/auth/request-otp", { phone }),
+    requestOtp: (phone: string, countryCode = "+91") =>
+      post<{ phone: string; dev_code: string }>("/auth/request-otp", {
+        phone,
+        country_code: countryCode,
+      }),
     verify: (phone: string, code: string) =>
       post<{ token: string; user: Me; is_new: boolean }>("/auth/verify", {
         phone,
@@ -217,8 +220,11 @@ export const api = {
         is_archived?: boolean;
         marked_unread?: boolean;
         mute_seconds?: number;
+        wallpaper?: string | null;
       },
     ) => patch<Conversation>(`/conversations/${id}/settings`, data),
+    uploadWallpaper: (id: number, file: File) =>
+      upload<Conversation>(`/conversations/${id}/wallpaper`, file, {}, file.name),
     remove: (id: number) => del<void>(`/conversations/${id}`),
     addMembers: (id: number, userIds: number[]) =>
       post<ConversationDetail>(`/conversations/${id}/members`, {

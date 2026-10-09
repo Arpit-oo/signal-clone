@@ -116,7 +116,15 @@ def test_fresh_accounts_onboard_discover_and_exchange_messages(client):
 
 
 def test_simultaneous_registration_reuses_one_account_and_note(client, monkeypatch):
-    variants = ["+919876543210", "+91 (98765) 43210", "91-98765-43210", " +919876543210 "]
+    variants = [
+        "+919876543210",
+        "+91 (98765) 43210",
+        "91-98765-43210",
+        " +919876543210 ",
+        "9876543210",
+        "+9876543210",
+        "0091 98765 43210",
+    ]
     barrier = Barrier(len(variants))
 
     def phase_for(db):
@@ -141,6 +149,63 @@ def test_simultaneous_registration_reuses_one_account_and_note(client, monkeypat
         headers = {"Authorization": f"Bearer {result.json()['token']}"}
         conversations = client.get("/api/conversations", headers=headers).json()
         assert [c["type"] for c in conversations] == ["note_to_self"]
+
+
+def test_phone_spellings_reopen_the_existing_profile_and_history(client):
+    account = Account(client, "+919877032297", "Original profile")
+    note = account.get("/api/conversations").json()[0]["id"]
+    saved = send(account, note, "Keep my history when I verify again")
+    for phone in (
+        "9877032297",
+        "+9877032297",
+        "+91 (98770) 32297",
+        "919877032297",
+        "00919877032297",
+    ):
+        requested = client.post("/api/auth/request-otp", json={"phone": phone})
+        assert requested.status_code == 200, requested.text
+        assert requested.json()["phone"] == "+919877032297"
+        auth = client.post("/api/auth/verify", json={"phone": phone, "code": "123456"})
+        assert auth.status_code == 200, auth.text
+        assert auth.json()["user"]["id"] == account.id
+        assert auth.json()["user"]["display_name"] == "Original profile"
+        assert auth.json()["is_new"] is False
+        headers = {"Authorization": f"Bearer {auth.json()['token']}"}
+        conversations = client.get("/api/conversations", headers=headers).json()
+        assert [conversation["id"] for conversation in conversations] == [note]
+        messages = client.get(f"/api/conversations/{note}/messages", headers=headers).json()[
+            "items"
+        ]
+        assert [message["id"] for message in messages] == [saved["id"]]
+
+
+@pytest.mark.parametrize(
+    "phone,country,expected",
+    [
+        ("5552223333", "+1", "+15552223333"),
+        ("07700 900123", "+44", "+447700900123"),
+        ("+15552223333", "+91", "+15552223333"),
+    ],
+)
+def test_selected_country_and_explicit_international_numbers(client, phone, country, expected):
+    response = client.post("/api/auth/request-otp", json={"phone": phone, "country_code": country})
+    assert response.status_code == 200, response.text
+    assert response.json()["phone"] == expected
+
+
+@pytest.mark.parametrize(
+    "phone,country",
+    [
+        ("123", "+91"),
+        ("9877032297999", "+91"),
+        ("9877032297", "+999"),
+        ("9877032297", "abc"),
+        ("+12345678901234", "+1"),
+    ],
+)
+def test_impossible_phone_lengths_and_country_codes_are_rejected(client, phone, country):
+    response = client.post("/api/auth/request-otp", json={"phone": phone, "country_code": country})
+    assert response.status_code == 422
 
 
 def test_simultaneous_direct_requests_from_both_members_reuse_one_chat(alice, bob, monkeypatch):

@@ -372,6 +372,7 @@ async def present_conversations(
                 is_archived=m.is_archived,
                 muted_until=m.muted_until,
                 marked_unread=m.marked_unread,
+                wallpaper=m.wallpaper,
             )
         )
     return out
@@ -510,6 +511,7 @@ async def update_settings(
     db: AsyncSession, me: User, conversation_id: int, data: ConversationSettings
 ) -> None:
     member = await get_membership(db, conversation_id, me.id, require_active=False)
+    previous_wallpaper = member.wallpaper
     if data.is_pinned is not None:
         member.is_pinned = data.is_pinned
         member.pinned_at = utcnow() if data.is_pinned else None
@@ -519,6 +521,8 @@ async def update_settings(
             member.is_pinned = False
     if data.marked_unread is not None:
         member.marked_unread = data.marked_unread
+    if "wallpaper" in data.model_fields_set:
+        member.wallpaper = data.wallpaper
     if data.mute_seconds is not None:
         if data.mute_seconds == 0:
             member.muted_until = None
@@ -527,6 +531,14 @@ async def update_settings(
         else:
             member.muted_until = utcnow() + timedelta(seconds=data.mute_seconds)
     await db.commit()
+    if (
+        "wallpaper" in data.model_fields_set
+        and previous_wallpaper
+        and previous_wallpaper.startswith("wallpapers/")
+    ):
+        from app.services import storage
+
+        storage.delete_key(previous_wallpaper)
 
 
 async def hide_conversation(db: AsyncSession, me: User, conversation_id: int) -> None:

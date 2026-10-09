@@ -20,7 +20,7 @@ import "@/app/auth.css";
 
 const demos = [
   { name: "Alex Rivera", phone: "+15550000001", color: "A110" },
-  { name: "Priya Sharma", phone: "+15550000002", color: "A150" },
+  { name: "Priya Sharma", phone: "+919876540102", color: "A150" },
   { name: "Marcus Chen", phone: "+15550000003", color: "A130" },
 ];
 
@@ -36,6 +36,7 @@ export default function AuthScreen({
   const me = useSession((s) => s.me);
   const sessionError = useSession((s) => s.error);
   const [phone, setPhone] = useState("");
+  const [countryCode, setCountryCode] = useState("+91");
   const [code, setCode] = useState("");
   const [devCode, setDevCode] = useState("");
   const [step, setStep] = useState<"phone" | "code">("phone");
@@ -53,7 +54,7 @@ export default function AuthScreen({
     setBusy(true);
     setError("");
     try {
-      const result = await api.auth.requestOtp(phone);
+      const result = await api.auth.requestOtp(phone, countryCode);
       setPhone(result.phone);
       setDevCode(result.dev_code);
       setCode("");
@@ -207,23 +208,42 @@ export default function AuthScreen({
               onSubmit={requestCode}
               aria-label={creatingAccount ? "Create account" : "Sign in"}
             >
-              <label className="ui-field">
-                Phone number
-                <input
-                  type="tel"
-                  required
-                  autoComplete="tel"
-                  aria-describedby="auth-phone-hint"
-                  value={phone}
-                  maxLength={32}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+91 98765 43210"
-                  disabled={busy}
-                />
-                <small id="auth-phone-hint">
-                  Include your country code, such as +91 or +1.
-                </small>
-              </label>
+              <div className="auth-phone-fields">
+                <label className="ui-field">
+                  Country code
+                  <input
+                    type="tel"
+                    autoComplete="tel-country-code"
+                    value={countryCode}
+                    onChange={(event) => setCountryCode(event.target.value)}
+                    pattern="\+?[1-9][0-9]{0,2}"
+                    maxLength={4}
+                    required
+                    disabled={busy}
+                    placeholder="+91"
+                    title="Enter a country code, such as +91 or +1"
+                  />
+                </label>
+                <label className="ui-field">
+                  Phone number
+                  <input
+                    type="tel"
+                    required
+                    autoComplete="tel"
+                    aria-describedby="auth-phone-hint"
+                    value={phone}
+                    maxLength={32}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="98770 32297"
+                    disabled={busy}
+                  />
+                </label>
+              </div>
+              <small id="auth-phone-hint" className="auth-phone-hint">
+                Enter your local number with the country code above, or paste a
+                full + international number. An existing number opens its
+                account.
+              </small>
               <ErrorText>{error}</ErrorText>
               <Button
                 type="submit"

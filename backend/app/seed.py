@@ -37,7 +37,7 @@ settings = get_settings()
 
 USERS = {
     "alex": ("+15550000001", "Alex Rivera", "alex", "Coffee first ☕", "A110"),
-    "priya": ("+15550000002", "Priya Sharma", "priya", "Building things", "A150"),
+    "priya": ("+919876540102", "Priya Sharma", "priya", "Building things", "A150"),
     "marcus": ("+15550000003", "Marcus Chen", "marcus", "On the trail 🥾", "A130"),
     "sofia": ("+15550000004", "Sofia Rossi", "sofia", "Ciao!", "A190"),
     "liam": ("+15550000005", "Liam O'Connor", "liam", "", "A170"),

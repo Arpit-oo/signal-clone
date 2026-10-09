@@ -1,5 +1,4 @@
 import asyncio
-import contextlib
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -24,13 +23,13 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         from app.seed import seed_if_empty
 
         await seed_if_empty()
-    sweeper = asyncio.create_task(run_sweeper())
+    stopped = asyncio.Event()
+    sweeper = asyncio.create_task(run_sweeper(stopped))
     try:
         yield
     finally:
-        sweeper.cancel()
-        with contextlib.suppress(asyncio.CancelledError):
-            await sweeper
+        stopped.set()
+        await sweeper
 
 
 def create_app() -> FastAPI:

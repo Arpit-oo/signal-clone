@@ -21,8 +21,11 @@ export default function MobileTabs({
         onClick={onChats}
       >
         <span>
-          <Icon name="chat" size={24} />
-          {unreadCount > 0 && <i>{unreadCount}</i>}
+          <Icon
+            name={activeSection === "chats" ? "chat-filled" : "chat"}
+            size={24}
+          />
+          {unreadCount > 0 && <i>{unreadCount > 99 ? "99+" : unreadCount}</i>}
         </span>
         Chats
       </button>
@@ -31,19 +34,10 @@ export default function MobileTabs({
         aria-label="Stories"
         aria-current={activeSection === "stories" ? "page" : undefined}
       >
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <rect x="8" y="3" width="12" height="18" rx="3" />
-          <path d="m6 5-2 1c-1 .3-1.5 1.3-1.2 2.4l2.8 10" />
-        </svg>
+        <Icon
+          name={activeSection === "stories" ? "stories-filled" : "stories"}
+          size={24}
+        />
         Stories
       </Link>
     </nav>

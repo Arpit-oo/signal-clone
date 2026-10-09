@@ -28,10 +28,7 @@ export default function Download() {
                 <Link className="site-button site-button-white" href="/signup">
                   Create account
                 </Link>
-                <Link
-                  className="site-button site-button-outline"
-                  href="/chats"
-                >
+                <Link className="site-button site-button-primary" href="/chats">
                   Open web messenger
                 </Link>
               </div>

@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import conflict
 from app.models import Block, Contact, User
-from app.schemas.user import AVATAR_COLORS, MeOut, MeUpdate, UserOut
+from app.schemas.user import AVATAR_COLORS, MeOut, MeUpdate, UserOut, normalize_phone
 from app.ws.manager import manager
 
 
@@ -56,6 +56,7 @@ def present_me(user: User) -> MeOut:
 
 
 async def get_or_create_by_phone(db: AsyncSession, phone: str) -> tuple[User, bool]:
+    phone = normalize_phone(phone)
     user = await db.scalar(select(User).where(User.phone == phone))
     if user:
         return user, False

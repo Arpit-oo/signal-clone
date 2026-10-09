@@ -13,7 +13,9 @@ async function openChat(page: Page, name: string) {
   await expect(page.getByLabel("Message", { exact: true })).toBeVisible();
 }
 async function actions(page: Page, messageLabel: string, action: string) {
-  await page.getByRole("article", { name: messageLabel, exact: true }).getByRole("button", { name: "Message actions" }).click();
+  const message = page.getByRole("article", { name: messageLabel, exact: true });
+  await message.hover();
+  await message.getByRole("button", { name: "Message actions" }).click();
   await page.getByRole("menuitem", { name: action, exact: true }).click();
 }
 
@@ -34,7 +36,7 @@ test("phone verification, two-user real-time delivery, reactions, replies, editi
   try {
     const peer = await peerContext.newPage();
     peer.on("pageerror", (error) => errors.push(error.message));
-    await signIn(peer, "+15550000002");
+    await signIn(peer, "+919876540102");
     await openChat(peer, "Alex Rivera");
     const text = `Browser delivery ${Date.now()}`;
     await page.getByLabel("Message", { exact: true }).fill(text);
@@ -45,6 +47,7 @@ test("phone verification, two-user real-time delivery, reactions, replies, editi
     await expect(outgoing.getByLabel("sending", { exact: true })).toHaveCount(0);
     await peer.bringToFront();
     await expect(outgoing.getByLabel("read", { exact: true })).toBeVisible();
+    await incoming.hover();
     await incoming.getByRole("button", { name: "Message actions" }).click();
     await peer.getByRole("menuitem", { name: "React with 👍", exact: true }).click();
     await expect(outgoing.getByRole("button", { name: "👍, 1 reaction", exact: true })).toBeVisible();
@@ -152,6 +155,7 @@ test("long timelines preserve the latest and historical position when resizing a
   await timeline.evaluate((el) => { el.scrollTop = 0; el.dispatchEvent(new Event("scroll")); });
   await page.getByRole("button", { name: "Jump to latest messages" }).click();
   const trigger = page.getByRole("article").last().getByRole("button", { name: "Message actions" });
+  await page.getByRole("article").last().hover();
   await trigger.click();
   await page.keyboard.press("Escape");
   await expect(trigger).toBeFocused();

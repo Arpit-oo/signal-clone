@@ -179,6 +179,10 @@ export default function Settings({ onClose }: { onClose: () => void }) {
     <Modal title="Settings" onClose={onClose} className="settings-modal">
       <div className="settings-layout">
         <nav className="settings-nav" aria-label="Settings sections">
+          <button type="button" className="settings-profile-card" onClick={() => setTab("profile")}>
+            <Avatar name={me.display_name} color={me.avatar_color} url={me.avatar_url} size={56} />
+            <span><strong>{me.display_name}</strong><small>{me.phone}</small></span>
+          </button>
           {tabs.map((item) => (
             <button
               key={item.id}
@@ -216,7 +220,7 @@ export default function Settings({ onClose }: { onClose: () => void }) {
           </div>
         </nav>
         <div className="settings-content scroll-thin">
-          <h2>{tabs.find((item) => item.id === tab)?.label}</h2>
+          <h2 key={tab} className="animate-fade-in">{tabs.find((item) => item.id === tab)?.label}</h2>
           <div hidden={tab !== "profile"}>
             <ProfileEditor />
             <div className="mobile-account">
@@ -237,6 +241,7 @@ export default function Settings({ onClose }: { onClose: () => void }) {
               <label className="ui-field">
                 Theme
                 <select
+                  aria-label="Theme"
                   value={prefs.theme}
                   onChange={(e) =>
                     prefs.set({ theme: e.target.value as ThemePref })
@@ -276,6 +281,19 @@ export default function Settings({ onClose }: { onClose: () => void }) {
                     A little more you.
                   </span>
                 </div>
+                <div className="form-actions">
+                  <Button
+                    variant="secondary"
+                    disabled={prefs.chatColor === "ultramarine"}
+                    onClick={() => prefs.set({ chatColor: "ultramarine" })}
+                  >
+                    Use Signal blue
+                  </Button>
+                </div>
+                <p className="subtle-note">
+                  Chat color changes your outgoing messages. Choose a background
+                  from the chat menu.
+                </p>
               </div>
               <label className="ui-field">
                 Message text size
@@ -412,10 +430,10 @@ export default function Settings({ onClose }: { onClose: () => void }) {
               <div className="local-notice">
                 <Icon name="info" size={22} />
                 <span>
-                  <strong>Calls aren’t available</strong>
+                  <strong>Stay connected</strong>
                   <small>
-                    This project supports messages, files and voice notes. Voice
-                    and video calling are not implemented.
+                    Make one-to-one voice and video calls from a chat. Allow
+                    microphone and camera access when your browser asks.
                   </small>
                 </span>
               </div>

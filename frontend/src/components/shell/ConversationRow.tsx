@@ -5,6 +5,7 @@ import { useChat } from "@/stores/chat";
 import { useSession } from "@/stores/session";
 import { Avatar, Icon, Spinner, useNow } from "@/components/ui";
 import { conversationPreview, timeLabel } from "./conversationFormatting";
+import { useContextMenuGesture } from "@/hooks/useContextMenuGesture";
 
 export default function ConversationRow({
   conversation: c,
@@ -31,11 +32,13 @@ export default function ConversationRow({
   const name =
     c.type === "note_to_self" ? "Note to Self" : c.peer?.nickname || c.name;
   const muted = !!c.muted_until && new Date(c.muted_until).getTime() > now;
+  const menuGesture = useContextMenuGesture((anchor) => onMenu(c, anchor));
   return (
     <div
       className={`conversation-row ${selected ? "selected" : ""} ${unread ? "unread" : ""} ${c.is_pinned ? "pinned" : ""}`}
     >
       <button
+        {...menuGesture}
         className="conversation-select"
         type="button"
         onClick={onSelect}
@@ -50,7 +53,7 @@ export default function ConversationRow({
           />
           {c.type === "note_to_self" && (
             <span className="note-avatar">
-              <Icon name="file" size={23} />
+              <Icon name="note" size={25} />
             </span>
           )}
           {presence?.online && <span className="online-dot" />}
@@ -67,6 +70,7 @@ export default function ConversationRow({
               {typing?.length ? "Typing…" : conversationPreview(c, meId)}
             </span>
             <span className="conversation-badges">
+              {c.is_pinned && <Icon name="pin" size={14} />}
               {muted && <Icon name="bell-off" size={14} />}{" "}
               {unread && (
                 <span className={`unread-badge ${muted ? "muted" : ""}`}>

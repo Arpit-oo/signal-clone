@@ -114,9 +114,8 @@
 
 @theme inline {
   --font-sans:
-    "Signal Inter",
-    -apple-system, system-ui, "Segoe UI", "Noto Sans", "Helvetica Neue", Arial,
-    sans-serif;
+    "Signal Inter", -apple-system, system-ui, "Segoe UI", "Noto Sans",
+    "Helvetica Neue", Arial, sans-serif;
 
   --color-surface-primary: var(--surface-primary);
   --color-surface-secondary: var(--surface-secondary);
@@ -303,6 +302,7 @@
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
 }

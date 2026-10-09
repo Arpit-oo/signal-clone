@@ -50,6 +50,7 @@ class ConversationOut(BaseModel):
     is_archived: bool
     muted_until: datetime | None
     marked_unread: bool
+    wallpaper: str | None = None
 
 
 class ConversationDetail(ConversationOut):
@@ -116,6 +117,7 @@ class ConversationSettings(BaseModel):
     marked_unread: bool | None = None
     # Seconds to mute for; -1 mutes forever, 0 unmutes.
     mute_seconds: int | None = None
+    wallpaper: Literal["blue", "mint", "lavender", "sand", "rose", "night"] | None = None
 
 
 class MembersAdd(BaseModel):

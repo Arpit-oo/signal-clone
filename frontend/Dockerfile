@@ -11,11 +11,13 @@ RUN npm ci --no-audit --no-fund
 FROM base AS builder
 ARG API_ORIGIN=http://backend:8000
 ARG NEXT_PUBLIC_WS_URL=ws://localhost:8000
+ARG NEXT_PUBLIC_RTC_ICE_SERVERS=[]
 ENV NODE_ENV=production \
     NEXT_STANDALONE=true \
     NEXT_DIST_DIR=.next \
     API_ORIGIN=${API_ORIGIN} \
-    NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL}
+    NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL} \
+    NEXT_PUBLIC_RTC_ICE_SERVERS=${NEXT_PUBLIC_RTC_ICE_SERVERS}
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
 RUN npm run build

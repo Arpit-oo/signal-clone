@@ -125,6 +125,25 @@ def _is_story_video(data: bytes, mime: str) -> bool:
     return {b"ftyp", b"moov", b"mdat"} <= boxes
 
 
+async def save_wallpaper(file: UploadFile) -> str:
+    """Decode and re-encode a bounded image; strip EXIF and preserve its aspect ratio."""
+    data = await _read_limited(file, 10 * 1024 * 1024)
+    try:
+        with Image.open(io.BytesIO(data)) as original:
+            if (
+                original.format not in {"JPEG", "PNG", "WEBP"}
+                or original.width * original.height > 25_000_000
+            ):
+                raise ValueError("Unsupported image")
+            img = ImageOps.exif_transpose(original).convert("RGB")
+            img.thumbnail((2048, 2048))
+            buf = io.BytesIO()
+            img.save(buf, "JPEG", quality=88)
+    except Exception as exc:
+        raise bad_request("Choose a JPEG, PNG or WebP image under 10 MB") from exc
+    return _write("wallpapers", ".jpg", buf.getvalue())
+
+
 async def save_story_media(file: UploadFile) -> StoredFile:
     """Validate a bounded raster image or MP4/WebM container in private storage."""
     mime = (file.content_type or "").lower().split(";", 1)[0].strip()

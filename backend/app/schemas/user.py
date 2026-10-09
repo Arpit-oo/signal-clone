@@ -1,20 +1,48 @@
 import re
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+import phonenumbers
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-PHONE_RE = re.compile(r"\+[1-9][0-9]{6,14}")
+PHONE_RE = re.compile(r"(?:\+|00)?[0-9]+")
 USERNAME_RE = re.compile(r"^[a-z][a-z0-9_]{2,31}$")
 AVATAR_COLORS = tuple(f"A{n}" for n in range(100, 220, 10))
 
 
-def normalize_phone(raw: str) -> str:
+def normalize_phone(raw: str, country_code: str = "+91") -> str:
     digits = re.sub(r"[\s\-().]", "", raw)
-    if not digits.startswith("+"):
-        digits = "+" + digits
     if not PHONE_RE.fullmatch(digits):
         raise ValueError("Enter a valid phone number with country code")
-    return digits
+    if digits.startswith("00"):
+        digits = "+" + digits[2:]
+    try:
+        region = None
+        if not digits.startswith("+"):
+            if not re.fullmatch(r"\+?[1-9][0-9]{0,2}", country_code):
+                raise ValueError("Enter a valid country code, such as +91 or +1")
+            region = phonenumbers.region_code_for_country_code(int(country_code.lstrip("+")))
+            if region is None or region == "001":
+                raise ValueError("Include the full international number with its + country code")
+        number = phonenumbers.parse(digits, region)
+        # Older clients put '+' before a ten-digit Indian mobile number. Recover
+        # that form only when it is not a valid international number, so real
+        # international identities keep their country code.
+        international = phonenumbers.format_number(number, phonenumbers.PhoneNumberFormat.E164)
+        if re.fullmatch(r"\+[6-9][0-9]{9}", international) and not phonenumbers.is_valid_number(
+            number
+        ):
+            national = phonenumbers.parse(international[1:], "IN")
+            if phonenumbers.is_valid_number(national):
+                number = national
+    except phonenumbers.NumberParseException as exc:
+        raise ValueError("Enter a valid phone number with country code") from exc
+    # Check country and length, rather than assigned exchanges: demo verification is mocked.
+    if not any(
+        phonenumbers.is_possible_number_for_type(number, kind)
+        for kind in (phonenumbers.PhoneNumberType.MOBILE, phonenumbers.PhoneNumberType.FIXED_LINE)
+    ):
+        raise ValueError("Check the phone number and country code; the length is invalid")
+    return phonenumbers.format_number(number, phonenumbers.PhoneNumberFormat.E164)
 
 
 class UserOut(BaseModel):
@@ -99,11 +127,12 @@ class MeUpdate(BaseModel):
 
 class OtpRequest(BaseModel):
     phone: str
+    country_code: str = "+91"
 
-    @field_validator("phone")
-    @classmethod
-    def _phone(cls, v: str) -> str:
-        return normalize_phone(v)
+    @model_validator(mode="after")
+    def _phone(self):
+        self.phone = normalize_phone(self.phone, self.country_code)
+        return self
 
 
 class OtpVerify(OtpRequest):

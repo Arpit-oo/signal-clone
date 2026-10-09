@@ -16,6 +16,9 @@ class ConnectionManager:
         self._sockets: dict[int, set[WebSocket]] = defaultdict(set)
         self._lock = asyncio.Lock()
 
+    async def send_socket(self, ws: WebSocket, type_: str, data: Any) -> None:
+        await self._safe_send(ws, {"type": type_, "data": data})
+
     async def connect(self, user_id: int, ws: WebSocket) -> bool:
         """Register a socket. Returns True if this is the user's first open socket."""
         async with self._lock:

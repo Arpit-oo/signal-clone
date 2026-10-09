@@ -11,6 +11,8 @@ import {
   type SVGProps,
 } from "react";
 import { fileUrl } from "@/lib/api";
+import { AVATAR_COLORS, AVATAR_FOREGROUNDS } from "@/lib/avatarColors";
+export { AVATAR_COLORS } from "@/lib/avatarColors";
 
 const paths: Record<string, ReactNode> = {
   "arrow-left": <path d="m14 5-7 7 7 7M7 12h14" />,
@@ -68,6 +70,10 @@ const paths: Record<string, ReactNode> = {
       <path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8" />
     </>
   ),
+  "mic-off": <><path d="M9 5V4a3 3 0 0 1 6 0v6M5 10v2a7 7 0 0 0 12 5M19 10v2M12 19v3M8 22h8M3 3l18 18" /></>,
+  phone: <path d="m5 3 4 5-2 3a14 14 0 0 0 6 6l3-2 5 4-2 3C9 22 2 15 2 5l3-2Z" />,
+  video: <><rect x="3" y="5" width="13" height="14" rx="3" /><path d="m16 9 5-3v12l-5-3" /></>,
+  "video-off": <><path d="M3 3l18 18M3 7v10a2 2 0 0 0 2 2h9M8 5h6a2 2 0 0 1 2 2v6m0-4 5-3v12" /></>,
   send: <path d="m3 3 19 9-19 9 4-9-4-9Zm4 9h15" />,
   check: <path d="m5 12 4 4L19 6" />,
   "double-check": (
@@ -84,6 +90,12 @@ const paths: Record<string, ReactNode> = {
   file: (
     <>
       <path d="M14 2H5v20h14V7l-5-5Zm0 0v5h5M8 12h8m-8 4h5" />
+    </>
+  ),
+  note: (
+    <>
+      <rect x="5" y="2" width="14" height="20" rx="2" />
+      <path d="M8 7h8M8 11h8M8 15h8M8 19h5" />
     </>
   ),
   download: <path d="M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4" />,
@@ -107,6 +119,33 @@ const paths: Record<string, ReactNode> = {
     </>
   ),
   chat: <path d="M21 11a9 9 0 0 1-9 9H7l-5 2 2-5v-6a9 9 0 0 1 17 0Z" />,
+  "chat-filled": (
+    <path
+      fill="currentColor"
+      stroke="none"
+      d="M12 2a10 10 0 0 0-8.8 14.7L2 22l5.3-1.2A10 10 0 1 0 12 2Z"
+    />
+  ),
+  stories: (
+    <>
+      <rect x="8" y="3" width="12" height="18" rx="3" />
+      <path d="m6 5-2 1c-1 .3-1.5 1.3-1.2 2.4l2.8 10" />
+    </>
+  ),
+  "stories-filled": (
+    <>
+      <rect
+        x="8"
+        y="3"
+        width="12"
+        height="18"
+        rx="3"
+        fill="currentColor"
+        stroke="none"
+      />
+      <path d="m6 5-2 1c-1 .3-1.5 1.3-1.2 2.4l2.8 10" />
+    </>
+  ),
   compose: (
     <>
       <path d="M20 13v7H4V4h7m3 10-5 1 1-5 8-8 4 4-8 8Z" />
@@ -198,21 +237,6 @@ export function Icon({
   );
 }
 
-export const AVATAR_COLORS: Record<string, string> = {
-  A100: "#e3a23b",
-  A110: "#5a7fc8",
-  A120: "#cb6a80",
-  A130: "#58957a",
-  A140: "#8973bb",
-  A150: "#c07c55",
-  A160: "#648fbd",
-  A170: "#b0935b",
-  A180: "#7c8796",
-  A190: "#b677a0",
-  A200: "#698765",
-  A210: "#668ea2",
-};
-
 /* Protected local avatar URLs are intentionally loaded without the Next image optimizer. */
 /* eslint-disable @next/next/no-img-element */
 export function Avatar({
@@ -240,7 +264,8 @@ export function Avatar({
       style={{
         width: size,
         height: size,
-        backgroundColor: AVATAR_COLORS[color] ?? color,
+        backgroundColor: AVATAR_COLORS[color] ?? AVATAR_COLORS.A110,
+        color: AVATAR_FOREGROUNDS[color] ?? AVATAR_FOREGROUNDS.A110,
         fontSize: Math.max(12, size * 0.36),
       }}
     >
@@ -326,9 +351,17 @@ export function Modal({
 }) {
   const titleId = useId();
   const ref = useRef<HTMLDivElement>(null);
-  const close = useEffectEvent(() => {
-    if (dismissible) onClose();
-  });
+  const [leaving, setLeaving] = useState(false);
+  const closingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const closeCallback = useRef(onClose);
+  useEffect(() => { closeCallback.current = onClose; }, [onClose]);
+  const close = () => {
+    if (!dismissible || closingTimer.current) return;
+    setLeaving(true);
+    const delay = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 160;
+    closingTimer.current = setTimeout(() => closeCallback.current(), delay);
+  };
+  const closeFromKeyboard = useEffectEvent(close);
   useEffect(() => {
     const dialogId = Symbol();
     openDialogs.push(dialogId);
@@ -347,7 +380,7 @@ export function Modal({
       if (event.key === "Escape") {
         event.preventDefault();
         event.stopPropagation();
-        close();
+        closeFromKeyboard();
       }
       if (event.key !== "Tab") return;
       const all = Array.from(
@@ -380,14 +413,15 @@ export function Modal({
       openDialogs.splice(openDialogs.indexOf(dialogId), 1);
       cancelAnimationFrame(frame);
       document.removeEventListener("keydown", keydown);
+      if (closingTimer.current) clearTimeout(closingTimer.current);
       if (previous?.isConnected) previous.focus();
     };
   }, []);
   return (
     <div
-      className="ui-modal-backdrop"
+      className={`ui-modal-backdrop ${leaving ? "is-leaving" : ""}`}
       onMouseDown={(e) => {
-        if (dismissible && e.target === e.currentTarget) onClose();
+        if (dismissible && e.target === e.currentTarget) close();
       }}
     >
       <div
@@ -403,7 +437,7 @@ export function Modal({
           <IconButton
             name="close"
             label="Close dialog"
-            onClick={onClose}
+            onClick={close}
             disabled={!dismissible}
           />
         </header>

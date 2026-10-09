@@ -23,8 +23,8 @@
   align-items: center;
   gap: 12px;
   width: 100%;
-  padding: 13px 11px 20px;
-  min-height: 88px;
+  padding: 10px 11px;
+  min-height: 72px;
   text-align: left;
   min-width: 0;
 }
@@ -33,8 +33,8 @@
   flex: none;
 }
 .conversation-avatar > .ui-avatar {
-  width: 52px !important;
-  height: 52px !important;
+  width: 48px !important;
+  height: 48px !important;
 }
 .online-dot {
   position: absolute;
@@ -149,34 +149,51 @@
 .conversation-menu-trigger {
   position: absolute;
   right: 9px;
-  bottom: 3px;
+  top: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 22px;
+  width: 32px;
+  height: 32px;
   opacity: 0;
+  pointer-events: none;
   background: transparent;
   border-radius: 8px;
   color: var(--label-secondary);
 }
 .conversation-pin-trigger {
   position: absolute;
-  right: 37px;
-  bottom: 3px;
-  width: 24px;
-  height: 22px;
+  right: 43px;
+  top: 6px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--label-secondary);
   border-radius: 6px;
   opacity: 0;
+  pointer-events: none;
 }
-.conversation-pin-trigger.is-pinned,
-.conversation-row:hover .conversation-pin-trigger,
-.conversation-row:focus-within .conversation-pin-trigger {
+.conversation-row:has(:focus-visible) .conversation-pin-trigger,
+.conversation-row:has(:focus-visible) .conversation-menu-trigger {
   opacity: 1;
+  pointer-events: auto;
+  background: var(--surface-secondary);
+}
+.conversation-row:has(:focus-visible) .conversation-topline time {
+  opacity: 0;
+}
+@media (hover: hover) and (pointer: fine) {
+  .conversation-row:hover .conversation-pin-trigger,
+  .conversation-row:hover .conversation-menu-trigger {
+    opacity: 1;
+    pointer-events: auto;
+    background: var(--surface-secondary);
+  }
+  .conversation-row:hover .conversation-topline time {
+    opacity: 0;
+  }
 }
 .conversation-pin-trigger.is-pinned {
   color: #3769ec;
@@ -186,10 +203,6 @@
 }
 .conversation-pin-trigger:disabled {
   opacity: 0.45;
-}
-.conversation-row:hover .conversation-menu-trigger,
-.conversation-row:focus-within .conversation-menu-trigger {
-  opacity: 1;
 }
 .conversation-menu-trigger:hover {
   color: #3769ec;

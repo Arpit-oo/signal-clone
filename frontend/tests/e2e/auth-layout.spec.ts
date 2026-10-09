@@ -8,7 +8,7 @@ test("phone verification and profile onboarding remain readable on short mobile 
   await page.goto("/signup");
   await page
     .getByLabel("Phone number", { exact: false })
-    .fill(`+1973${String(Date.now()).slice(-9)}`);
+    .fill(`+1973${String(Date.now()).slice(-7)}`);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Verify your number", exact: true }),

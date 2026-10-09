@@ -18,7 +18,7 @@ uv run uvicorn app.main:app --host 127.0.0.1 --port 8000
 
 The virtual environment is `backend/.venv`; the database and uploaded files stay in `backend/data`. Startup creates missing database directories and applies the checked-in Alembic migrations before serving requests. Demo seeding only runs on an empty database and preserves existing accounts and messages on later starts.
 
-Open [interactive API docs](http://127.0.0.1:8000/docs) or [health](http://127.0.0.1:8000/health). Sign in as Alex Rivera with `+15550000001` and code `123456`; Priya Sharma is `+15550000002`. Any valid new phone number also accepts the same demo code and opens profile setup.
+Open [interactive API docs](http://127.0.0.1:8000/docs) or [health](http://127.0.0.1:8000/health). Sign in as Alex Rivera with `+15550000001` and code `123456`; Priya Sharma is `+919876540102`. Any valid new phone number also accepts the same demo code and opens profile setup.
 
 Copy `.env.example` to `.env` to change settings. The API reads `backend/.env` regardless of the launch directory. Relevant settings:
 

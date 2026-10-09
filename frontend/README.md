@@ -12,7 +12,7 @@ Copy-Item .env.example .env.local
 npm run dev
 ```
 
-Start the FastAPI backend on port 8000, then open http://127.0.0.1:3000 for the reference homepage, `/download` for the local demo entry and official downloads, or `/chats` for messaging. Demo verification uses code `123456`; Alex's phone is `+15550000001`, Priya's is `+15550000002`.
+Start the FastAPI backend on port 8000, then open http://127.0.0.1:3000 for the reference homepage, `/download` for the local demo entry and official downloads, or `/chats` for messaging. Demo verification uses code `123456`; Alex's phone is `+15550000001`, Priya's is `+919876540102`.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |

@@ -8,6 +8,7 @@ from app.models import Conversation, ConversationMember, User
 from app.schemas.user import ContactCreate, ContactUpdate, UserOut, normalize_phone
 from app.services import contacts as contacts_svc
 from app.services import users as users_svc
+from app.ws.calls import calls
 
 router = APIRouter(tags=["users"])
 
@@ -94,6 +95,7 @@ async def list_blocked(me: CurrentUser, db: DB):
 @router.put("/blocks/{user_id}", response_model=UserOut)
 async def block_user(user_id: int, me: CurrentUser, db: DB):
     user = await contacts_svc.block(db, me, user_id)
+    await calls.blocked(me.id, user_id)
     return await users_svc.present_user(db, me.id, user)
 
 

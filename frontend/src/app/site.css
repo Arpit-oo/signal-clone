@@ -209,6 +209,16 @@
 .site-button-outline:hover {
   background: #eef3ff;
 }
+.site-button-primary {
+  color: #fff;
+  background: #1855d1;
+  border: 2px solid #1855d1;
+  padding: 0 19px;
+}
+.site-button-primary:hover {
+  background: #1243aa;
+  border-color: #1243aa;
+}
 .site-phones {
   position: relative;
   padding-left: 12px;
@@ -354,6 +364,20 @@
   min-height: 40px;
   text-decoration: underline;
   text-underline-offset: 4px;
+}
+.site-assessment-note {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid rgb(255 255 255 / 0.2);
+}
+.site-assessment-note p,
+.site-assessment-note a {
+  font-size: 14px;
+  line-height: 22px;
+}
+.site-assessment-note a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 .site-language-dialog {
   color: #1b1b1b;

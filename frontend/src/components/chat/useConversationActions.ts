@@ -6,6 +6,7 @@ import type { Attachment, ChatMessage, Me } from "@/lib/types";
 import { useChat } from "@/stores/chat";
 import type { MessageAction } from "./MessageBubble";
 import { errorMessage } from "./helpers";
+import { useCall } from "@/stores/call";
 
 export type CallType = "voice" | "video";
 type MessageDialog = {
@@ -24,10 +25,8 @@ export interface MessageInteractions {
 
 export interface ConversationDialogController {
   image: Attachment | null;
-  callType: CallType | null;
   messageDialog: MessageDialog | null;
   closeImage: () => void;
-  closeCall: () => void;
   closeMessage: () => void;
 }
 
@@ -47,7 +46,6 @@ export function useConversationActions(
   conversationId: number,
   me: Me | null,
 ): ConversationActions {
-  const [callType, setCallType] = useState<CallType | null>(null);
   const [reply, setReply] = useState<ChatMessage | null>(null);
   const [edit, setEdit] = useState<ChatMessage | null>(null);
   const [dialog, setDialog] = useState<{
@@ -118,7 +116,10 @@ export function useConversationActions(
       setEdit(null);
     },
     dismissError: () => setError(null),
-    openCall: setCallType,
+    openCall: (kind) => {
+      const conversation = useChat.getState().conversations[conversationId];
+      if (conversation) void useCall.getState().start(conversation, kind);
+    },
     messageActions: {
       onAction: (name, message) => {
         void action(name, message);
@@ -134,10 +135,8 @@ export function useConversationActions(
     },
     dialogs: {
       image,
-      callType,
       messageDialog: dialog,
       closeImage: () => setImage(null),
-      closeCall: () => setCallType(null),
       closeMessage: () => setDialog(null),
     },
   };

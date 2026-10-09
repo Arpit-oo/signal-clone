@@ -13,6 +13,7 @@ import { MessageTimeline } from "./MessageTimeline";
 import { useConversationActions } from "./useConversationActions";
 import { useTimelineScroll } from "./useTimelineScroll";
 import "./chat.css";
+import { wallpaperStyle } from "@/lib/wallpapers";
 
 interface ChatPaneProps {
   conversationId: number;
@@ -87,7 +88,7 @@ function ConversationPane({
         onCall={actions.openCall}
       />
       <div className="chat-body">
-        <div className="chat-main">
+        <div className={`chat-main ${conversation.wallpaper ? "has-wallpaper" : ""}`} style={wallpaperStyle(conversation.wallpaper, conversation.id)}>
           {actions.error && (
             <div className="chat-inline-error chat-pane-error" role="alert">
               <Icon name="alert" size={16} />

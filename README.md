@@ -37,12 +37,18 @@ Open **http://127.0.0.1:3000** for the homepage. Use **Open messenger**, **Sign 
 | Account | Phone |
 | --- | --- |
 | Alex Rivera | +15550000001 |
-| Priya Sharma | +15550000002 |
+| Priya Sharma | +919876540102 |
 | Marcus Chen | +15550000003 |
 
 At `/signup`, use your own phone number with its country code, enter the displayed simulated verification code, and set your name, optional username, and photo. A new account starts with Note to Self and its own contacts and conversations. Search registered people by name, or use the exact phone/username lookup in New conversation. Pin chats from their row, menu, or details panel; pins belong to your account and survive reloads. Signed-in users visiting signup can choose **Use another number**.
 
+Sign-in and signup share one phone identity: repeated verification opens the existing account. The country-code field defaults to +91; local numbers use that code, while full international numbers keep their explicit code. The backend uses [phonenumbers](https://github.com/daviddrysdale/python-phonenumbers) to store canonical E.164 numbers and check country/length while allowing simulated demo numbers. A migration consolidates legacy duplicates, keeps the canonical profile and all messages, and never reuses retired user IDs.
+
 All page URLs, navigation behavior, and the complete backend endpoint inventory are listed in [ROUTES.md](ROUTES.md). Individual conversations have `/chats/{id}` URLs; details use `?details=1`. Refresh and browser Back/Forward retain the selected conversation.
+
+On phones, press and hold a conversation or message to open its actions. Ordinary taps still open chats and image previews, and dragging scrolls the list. On desktop, right-click a conversation or message, or hover to reveal its action buttons. Keyboard users can reach those buttons with Tab; Shift+F10 opens a focused conversation's menu, and Escape closes menus and restores focus.
+
+Typing indicators use subtle staggered dots. With reduced motion enabled, the dots remain still and the typing text stays visible. Avatar initials use pale backgrounds with foreground colors checked against the WCAG AA 4.5:1 text contrast threshold; phone chat controls and reaction buttons have at least 44px touch targets.
 
 ```powershell
 .\scripts\stop.ps1
@@ -66,7 +72,15 @@ If PowerShell policy prevents local scripts, use `powershell -NoProfile -Executi
 - Light/dark/system theme, chat colors, message text size, notification privacy, typing/read-receipt privacy, and keyboard preferences.
 - Desktop and mobile layouts, keyboard-accessible controls/dialogs, loading states, and actionable errors.
 
-Phone verification uses a fixed mock OTP; no SMS is sent. Messages and uploads are stored on the local server without Signal's end-to-end encryption. Voice/video calling and multi-device linking are outside the implemented scope.
+Phone verification uses a fixed mock OTP; no SMS is sent. Messages and uploads are stored on the local server without Signal's end-to-end encryption. One-to-one voice/video calling is functional. Group calls and multi-device linking remain outside the implemented scope.
+
+### Calling and chat backgrounds
+
+Open a direct chat and use its phone or camera button, or choose someone from the Calls tab. Sign into a second browser profile as the other person to receive the call, including while viewing Stories. Calls support accept/decline, microphone mute, camera toggle, duration, hang up, busy/offline feedback, and disconnect cleanup. Microphone/camera access requires localhost or HTTPS and browser permission. Calls use native WebRTC: authenticated WebSocket signaling exchanges the offer, answer and connection candidates; media travels between browsers and is not recorded. The first tab to accept owns the call; other tabs dismiss their incoming windows.
+
+Local calling works with `NEXT_PUBLIC_RTC_ICE_SERVERS=[]`. For calling across networks, configure a JSON array of ICE servers, including a TURN relay for restrictive networks, then rebuild the frontend. Compose accepts the same variable as a build argument. For example: `[{"urls":"stun:your-stun-host:3478"},{"urls":"turn:your-turn-host:3478","username":"your-user","credential":"your-credential"}]`. TURN credentials embedded in frontend configuration are visible to browser clients; use appropriately scoped credentials. This implementation follows the browser [WebRTC connection and signaling workflow](https://webrtc.org/getting-started/peer-connections).
+
+The chat's three-dot menu includes disappearing-message and mute submenus, chat settings, shared media, background selection, pin/archive/unread actions, and confirmed block/delete actions. Choose one of six backgrounds or upload a JPEG/PNG/WebP image under 10 MB. Backgrounds persist per member and conversation, including after sign out/restart; other members cannot access uploaded backgrounds. Uploads are decoded, resized to a maximum of 2048 pixels, and saved without EXIF metadata. Settings fills the viewport. Menus, dialogs and panels use short transitions that respect reduced-motion preferences. Inter remains unchanged.
 
 ## Architecture and database
 
@@ -94,7 +108,7 @@ These paths are relative to `frontend/src/`. UI components reuse the shared stor
 | `contacts` | `(owner_id, contact_id)` → users | Per-account contacts and nicknames |
 | `blocks` | `(blocker_id, blocked_id)` → users | Privacy/access restrictions |
 | `conversations` | `id`; creator → users; unique optional identity key | Direct, group, and Note to Self metadata |
-| `conversation_members` | `(conversation_id, user_id)` | Roles, membership/history boundaries, read cursor, pins, archive/mute state |
+| `conversation_members` | `(conversation_id, user_id)` | Roles, membership/history boundaries, read cursor, pins, archive/mute state, private wallpaper |
 | `messages` | `id`; conversation/sender/reply references; unique client ID | Text/system content, edits/deletion, disappearing timers |
 | `message_receipts` | `(message_id, user_id)` | Delivery and read timestamps per recipient |
 | `message_hidden` | `(message_id, user_id)` | Delete-for-me visibility |
@@ -120,6 +134,7 @@ REST requests use `/api` on both the frontend proxy and FastAPI. Protected endpo
 | `GET`, `POST` | `/api/conversations` | List chats or create a direct/group conversation |
 | `GET`, `PATCH` | `/api/conversations/{id}` | Read authorized chat details or update group metadata |
 | `PATCH` | `/api/conversations/{id}/settings` | Set your pin, archive, mute, and unread preferences |
+| `POST`, `GET` | `/api/conversations/{id}/wallpaper` | Upload/read your private chat background; presets/reset use the settings endpoint |
 | `POST` | `/api/conversations/{id}/members` | Add group members; member-specific `PATCH`/`DELETE` manage roles/removal |
 | `GET`, `POST` | `/api/conversations/{id}/messages` | Page through persistent history or send a message |
 | `GET` | `/api/search`, `/api/conversations/{id}/messages/search` | Search across your data or within one conversation |
@@ -211,3 +226,5 @@ npm run dev
 ```
 
 For browser tests, run `PLAYWRIGHT_BROWSERS_PATH=../.cache/playwright npx playwright install chromium` first. SQLite/upload paths resolve from the backend folder regardless of launch directory. Interactive API docs: http://127.0.0.1:8000/docs.
+
+Call signaling events: clients send `call.invite`, `call.accept`, `call.signal`, `call.connected`, and `call.end` through the existing authenticated `/ws` connection. Server events are `call.incoming`, `call.ringing`, `call.accepted`, `call.dismissed`, `call.signal`, and `call.ended`. Signaling validates direct-chat membership, blocks, socket ownership, payload bounds and busy state; ringing expires after 45 seconds. Calls are ephemeral and do not create message history.

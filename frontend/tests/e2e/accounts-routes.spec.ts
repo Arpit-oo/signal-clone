@@ -33,7 +33,7 @@ test("own-number accounts discover each other, exchange messages, pin independen
   page,
   browser,
 }) => {
-  const suffix = String(Date.now()).slice(-9);
+  const suffix = String(Date.now()).slice(-7);
   const firstPhone = `+1981${suffix}`;
   const secondPhone = `+1982${suffix}`;
   const firstName = `Account One ${suffix}`;

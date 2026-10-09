@@ -76,6 +76,8 @@ class ConversationMember(Base):
     # "Delete chat" hides messages up to this point for this member only.
     cleared_before_id: Mapped[int | None] = mapped_column(Integer)
     is_hidden: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Private to this member: a preset name or a generated wallpaper storage key.
+    wallpaper: Mapped[str | None] = mapped_column(String(512))
 
     conversation: Mapped[Conversation] = relationship(back_populates="members")
     user: Mapped["User"] = relationship()

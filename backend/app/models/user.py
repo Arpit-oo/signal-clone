@@ -8,6 +8,8 @@ from app.db.base import Base, UTCDateTime, utcnow
 
 class User(Base):
     __tablename__ = "users"
+    # Retired duplicate IDs must never be reused by a new account/session.
+    __table_args__ = {"sqlite_autoincrement": True}
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     phone: Mapped[str] = mapped_column(String(20), unique=True, index=True)

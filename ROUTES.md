@@ -16,7 +16,7 @@ The local frontend runs at **http://127.0.0.1:3010**. The backend runs at **http
 
 Sign-in and signup accept an optional `next` parameter restricted to the chat routes above and `/stories`. For example, `/login?next=%2Fchats%2F12` returns to conversation 12 after sign-in and profile setup; `/login?next=%2Fstories` returns to Stories. Invalid page URLs show a page-not-found screen with links back to the product; inaccessible conversations show a recoverable error.
 
-Profile/settings, new conversations, groups, contact controls, message actions, and story creation/viewing are dialogs or panels within the messenger. They do not require separate page URLs. Voice/video calls and linked devices remain permitted placeholders under the project brief.
+Profile/settings, new conversations, groups, contact controls, message actions, story creation/viewing, chat backgrounds and calls are dialogs or panels within the messenger. Settings occupies the full viewport. One-to-one voice/video calls are functional; group calling and linked devices remain placeholders.
 
 Phone verification remains mocked: **123456**, with no SMS sent. This applies to both seeded and newly registered numbers. New users get their own empty account with Note to Self; existing sample conversations belong to the seeded users.
 
@@ -44,6 +44,8 @@ The endpoint inventory below is generated from the backend's OpenAPI schema. Aut
 | `GET` | `/api/conversations` | List Conversations |
 | `POST` | `/api/conversations` | Create Conversation |
 | `GET` | `/api/conversations/{conversation_id}` | Get Conversation |
+| `POST` | `/api/conversations/{conversation_id}/wallpaper` | Upload a private background |
+| `GET` | `/api/conversations/{conversation_id}/wallpaper` | Read your uploaded background |
 | `PATCH` | `/api/conversations/{conversation_id}` | Update Conversation |
 | `DELETE` | `/api/conversations/{conversation_id}` | Delete Conversation |
 | `POST` | `/api/conversations/{conversation_id}/avatar` | Upload Group Avatar |
@@ -81,3 +83,5 @@ The endpoint inventory below is generated from the backend's OpenAPI schema. Aut
 | `GET` | `/api/users/{user_id}` | Get User |
 | `GET` | `/api/users/{user_id}/groups-in-common` | Groups In Common |
 | `GET` | `/health` | Health |
+
+One-to-one calls use the existing `/ws` endpoint: `call.invite`, `call.accept`, `call.signal`, `call.connected`, `call.end`. The backend authenticates both participants and binds a call to their owning browser sockets.

@@ -152,6 +152,7 @@ export interface Conversation {
   is_archived: boolean;
   muted_until: string | null;
   marked_unread: boolean;
+  wallpaper?: string | null;
 }
 
 export interface Member {
@@ -222,6 +223,10 @@ export interface StoryView {
 
 /** Server → client WebSocket events. */
 export type ServerEvent =
+  | { type: "call.incoming"; data: { call_id: string; conversation_id: number; kind: "voice" | "video"; caller: User; offer: RTCSessionDescriptionInit } }
+  | { type: "call.ringing" | "call.accepted" | "call.dismissed"; data: { call_id: string } }
+  | { type: "call.signal"; data: { call_id: string; description?: RTCSessionDescriptionInit; candidate?: RTCIceCandidateInit } }
+  | { type: "call.ended"; data: { call_id: string; reason: string } }
   | { type: "story.changed"; data: { story_id: number } }
   | { type: "message.new"; data: Message }
   | { type: "message.updated"; data: Message }

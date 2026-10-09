@@ -214,7 +214,8 @@ for conversation_id, kind in [(10, 'direct'), (11, 'direct'), (12, 'note_to_self
         VALUES (?, ?, 1, 'text', ?, 0, '2026-01-02 00:00:00')''',
         (conversation_id, conversation_id, f'History {conversation_id}'))
 connection.commit()
-membership_query = 'SELECT * FROM conversation_members ORDER BY conversation_id, user_id'
+columns = ', '.join(row[1] for row in connection.execute('PRAGMA table_info(conversation_members)'))
+membership_query = f'SELECT {columns} FROM conversation_members ORDER BY conversation_id, user_id'
 before = connection.execute(membership_query).fetchall()
 connection.close()
 
@@ -259,4 +260,4 @@ connection.close()
         check=False,
     )
     assert result.returncode == 0, result.stderr
-    assert json.loads(result.stdout)["revision"] == "b38d41ac975e"
+    assert json.loads(result.stdout)["revision"] == "d83a6f2c190b"

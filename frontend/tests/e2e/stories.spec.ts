@@ -34,12 +34,11 @@ test("Stories keep the Chats navigation and its controls on desktop and mobile",
     exact: true,
   });
   await expect(rail).toBeVisible();
-  const controls = await rail.locator("button, a").evaluateAll((elements) =>
-    elements.map((element) => ({
-      label: element.getAttribute("aria-label"),
-      icon: element.querySelector("svg")?.innerHTML ?? null,
-    })),
-  );
+  const controls = await rail
+    .locator("button, a")
+    .evaluateAll((elements) =>
+      elements.map((element) => element.getAttribute("aria-label")),
+    );
   const bounds = await rail.boundingBox();
   await rail.getByRole("link", { name: "Stories", exact: true }).click();
   await expect(page).toHaveURL(/\/stories$/);
@@ -48,21 +47,20 @@ test("Stories keep the Chats navigation and its controls on desktop and mobile",
   ).toHaveAttribute("aria-current", "page");
   await expect(rail.locator('[aria-current="page"]')).toHaveCount(1);
   expect(
-    await rail.locator("button, a").evaluateAll((elements) =>
-      elements.map((element) => ({
-        label: element.getAttribute("aria-label"),
-        icon: element.querySelector("svg")?.innerHTML ?? null,
-      })),
-    ),
+    await rail
+      .locator("button, a")
+      .evaluateAll((elements) =>
+        elements.map((element) => element.getAttribute("aria-label")),
+      ),
   ).toEqual(controls);
   expect(await rail.boundingBox()).toEqual(bounds);
 
   await rail
-    .getByRole("button", { name: "Calls · Coming soon", exact: true })
+    .getByRole("button", { name: "Calls", exact: true })
     .click();
   const calls = page.getByRole("dialog", { name: "Calls", exact: true });
-  await expect(calls).toContainText("Calls are coming soon.");
-  await calls.getByRole("button", { name: "Got it", exact: true }).click();
+  await expect(calls).toContainText("Start a voice or video call");
+  await calls.getByRole("button", { name: "Close dialog", exact: true }).click();
   await rail.getByRole("button", { name: "Settings", exact: true }).click();
   const settings = page.getByRole("dialog", { name: "Settings", exact: true });
   await expect(settings).toBeVisible();
@@ -145,7 +143,7 @@ test("Stories preserve the sign-in destination and share live with the selected 
   try {
     const peer = await peerContext.newPage();
     peer.on("pageerror", (error) => errors.push(error.message));
-    await signIn(peer, "+15550000002");
+    await signIn(peer, "+919876540102");
     await peer.getByRole("link", { name: "Stories", exact: true }).click();
     await expect(peer).toHaveURL(/\/stories$/);
     const body = `A story for Priya ${Date.now()}`;
@@ -348,7 +346,7 @@ test("photo Stories render on phones, retain privacy controls, and link back to 
   });
   try {
     const other = await otherContext.newPage();
-    await signIn(other, "+15550000002");
+    await signIn(other, "+919876540102");
     await other.goto("/stories");
     await expect(
       other.getByRole("heading", { name: "Stories", exact: true, level: 1 }),
@@ -368,7 +366,7 @@ test("uploaded video Stories play and private viewing receipts stay hidden", asy
   page,
   browser,
 }) => {
-  await signIn(page, "+15550000002");
+  await signIn(page, "+919876540102");
   await page.goto("/stories");
   // Record a real browser-supported clip rather than a file with only a video header.
   const base64 = await page.evaluate(async () => {

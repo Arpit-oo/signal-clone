@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Query, UploadFile, status
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 
-from app.api.deps import DB, CurrentUser
-from app.core.errors import bad_request
+from app.api.deps import DB, CurrentUser, MediaUser
+from app.core.errors import bad_request, not_found
 from app.schemas.conversation import (
     ConversationCreate,
     ConversationDetail,
@@ -99,6 +99,37 @@ async def update_settings(
 async def delete_conversation(conversation_id: int, me: CurrentUser, db: DB) -> None:
     await conv_svc.hide_conversation(db, me, conversation_id)
     await manager.send_to_user(me.id, "conversation.removed", {"conversation_id": conversation_id})
+
+
+@router.post("/{conversation_id}/wallpaper", response_model=ConversationOut)
+async def upload_wallpaper(conversation_id: int, file: UploadFile, me: CurrentUser, db: DB):
+    member = await conv_svc.get_membership(db, conversation_id, me.id, require_active=False)
+    key = await storage.save_wallpaper(file)
+    old = member.wallpaper
+    member.wallpaper = key
+    try:
+        await db.commit()
+    except Exception:
+        storage.delete_key(key)
+        raise
+    if old and old.startswith("wallpapers/"):
+        storage.delete_key(old)
+    out = await conv_svc.conversation_out(db, me, conversation_id)
+    await manager.send_to_user(me.id, "conversation.updated", out.model_dump(mode="json"))
+    return out
+
+
+@router.get("/{conversation_id}/wallpaper")
+async def get_wallpaper(conversation_id: int, me: MediaUser, db: DB) -> FileResponse:
+    member = await conv_svc.get_membership(db, conversation_id, me.id, require_active=False)
+    if not member.wallpaper or not member.wallpaper.startswith("wallpapers/"):
+        raise not_found("Wallpaper")
+    path = storage.path_for(member.wallpaper)
+    if not path.is_file():
+        raise not_found("Wallpaper")
+    return FileResponse(
+        path, media_type="image/jpeg", headers={"Cache-Control": "private, no-store"}
+    )
 
 
 # --- members -------------------------------------------------------------------------------

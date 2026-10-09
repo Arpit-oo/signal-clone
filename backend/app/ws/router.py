@@ -21,6 +21,8 @@ from app.models import ConversationMember, User
 from app.schemas.message import DeliveredRequest, MessageSend
 from app.services import conversations as conv_svc
 from app.services import messages as msg_svc
+from app.services import users as users_svc
+from app.ws.calls import Invite, Signal, calls
 from app.ws.manager import manager
 from app.ws.typing import typing_registry
 
@@ -63,7 +65,39 @@ async def _handle(ws: WebSocket, user_id: int, type_: str, data: Any) -> None:
             await ws.close(code=status.WS_1008_POLICY_VIOLATION)
             return
 
-        if type_ == "message.send":
+        if type_ == "call.invite":
+            payload = Invite.model_validate(data)
+            member = await conv_svc.get_membership(db, payload.conversation_id, me.id)
+            if member.conversation.type != "direct":
+                raise ValueError("Calls are available in one-to-one chats")
+            await msg_svc.check_can_send(db, me, member.conversation)
+            others = [
+                uid
+                for uid in await conv_svc.active_member_ids(db, payload.conversation_id)
+                if uid != me.id
+            ]
+            if len(others) != 1:
+                raise ValueError("A call needs one other person")
+            profile = (await users_svc.present_user(db, others[0], me)).model_dump(mode="json")
+            await calls.invite(ws, me.id, others[0], payload, profile)
+        elif type_ in ("call.accept", "call.signal", "call.end", "call.connected"):
+            payload = Signal.model_validate(data)
+            call_id = str(payload.call_id)
+            if type_ == "call.accept":
+                call = calls.calls.get(call_id)
+                if call and await users_svc.is_blocked_between(db, call.caller, call.callee):
+                    raise ValueError("This person is blocked")
+                await calls.accept(call_id, me.id, ws)
+            elif type_ == "call.signal":
+                await calls.signal(call_id, me.id, ws, payload)
+            elif type_ == "call.connected":
+                await calls.connected(call_id, me.id, ws)
+            else:
+                reason = data.get("reason", "hangup")
+                if reason not in {"hangup", "declined", "media_error", "connection_failed"}:
+                    raise ValueError("Invalid call end reason")
+                await calls.end(call_id, me.id, ws, reason)
+        elif type_ == "message.send":
             payload = MessageSend.model_validate(data)
             conversation_id = int(data["conversation_id"])
             msg, created = await msg_svc.create_message(db, me, conversation_id, payload)
@@ -150,7 +184,9 @@ async def websocket_endpoint(ws: WebSocket, token: str = "") -> None:
 
 
 async def _on_disconnect(user_id: int, ws: WebSocket) -> None:
-    if not await manager.disconnect(user_id, ws):
+    last_socket = await manager.disconnect(user_id, ws)
+    await calls.disconnected(user_id, ws)
+    if not last_socket:
         return
     now = utcnow()
     async with SessionLocal() as db:

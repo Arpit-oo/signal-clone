@@ -9,6 +9,7 @@ import { fileUrl } from "@/lib/api";
 import type { Attachment, ChatMessage, User } from "@/lib/types";
 import { displayName } from "@/stores/chat";
 import { formatBytes, formatDuration } from "./helpers";
+import { useContextMenuGesture } from "@/hooks/useContextMenuGesture";
 
 export type MessageAction =
   "reply" | "edit" | "delete" | "forward" | "info" | "copy";
@@ -221,6 +222,40 @@ export function MessageBubble({
     closeMenu(true);
     onAction(name, message);
   };
+  function openMenu(anchor: HTMLElement) {
+    setRecent(Date.now() - new Date(message.created_at).getTime() < 86400000);
+    const bounds = anchor.getBoundingClientRect();
+    const menuWidth =
+      window.innerWidth <= 760 ? Math.min(288, window.innerWidth - 24) : 228;
+    const estimatedHeight = message.is_deleted
+      ? own
+        ? 92
+        : 52
+      : own
+        ? 340
+        : 270;
+    setMenuPosition({
+      left: Math.max(
+        12,
+        Math.min(
+          window.innerWidth - menuWidth - 12,
+          own ? bounds.right - menuWidth : bounds.left,
+        ),
+      ),
+      top:
+        bounds.top > estimatedHeight + 12
+          ? bounds.top - estimatedHeight - 6
+          : Math.max(
+              12,
+              Math.min(
+                window.innerHeight - estimatedHeight - 12,
+                bounds.bottom + 6,
+              ),
+            ),
+    });
+    setMenu(true);
+  }
+  const menuGesture = useContextMenuGesture(openMenu, !confirmed);
   const status = message.status;
   return (
     <article
@@ -242,10 +277,16 @@ export function MessageBubble({
       )}
       <div className="chat-message-stack">
         <div
+          {...menuGesture}
           className={`chat-bubble ${message.is_deleted ? "chat-deleted" : ""} ${!message.is_deleted && !message.attachments.length && !message.localAttachments?.length ? "chat-bubble-text" : ""}`}
         >
           {groupChat && !own && !grouped && (
-            <div className="chat-sender-name">{displayName(sender)}</div>
+            <div
+              className="chat-sender-name"
+              data-color={(message.sender_id ?? 0) % 8}
+            >
+              {displayName(sender)}
+            </div>
           )}
           {message.is_forwarded && !message.is_deleted && (
             <div className="chat-forwarded">
@@ -430,37 +471,8 @@ export function MessageBubble({
             aria-haspopup="menu"
             aria-controls={menu ? menuId : undefined}
             onClick={(event) => {
-              setRecent(
-                Date.now() - new Date(message.created_at).getTime() < 86400000,
-              );
-              const bounds = event.currentTarget.getBoundingClientRect();
-              const estimatedHeight = message.is_deleted
-                ? own
-                  ? 92
-                  : 52
-                : own
-                  ? 340
-                  : 270;
-              setMenuPosition({
-                left: Math.max(
-                  12,
-                  Math.min(
-                    window.innerWidth - 240,
-                    own ? bounds.right - 228 : bounds.left,
-                  ),
-                ),
-                top:
-                  bounds.top > estimatedHeight + 12
-                    ? bounds.top - estimatedHeight - 6
-                    : Math.max(
-                        12,
-                        Math.min(
-                          window.innerHeight - estimatedHeight - 12,
-                          bounds.bottom + 6,
-                        ),
-                      ),
-              });
-              setMenu(!menu);
+              if (menu) closeMenu();
+              else openMenu(event.currentTarget);
             }}
           >
             <Icon name="more" size={18} />

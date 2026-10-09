@@ -82,6 +82,7 @@ test("sidebar search ignores late responses, retries failures, and restores menu
       name: "Options for Priya Sharma",
       exact: true,
     });
+    await page.locator(".conversation-row").filter({ hasText: "Priya Sharma" }).hover();
     await trigger.click();
     const menu = page.getByRole("menu", {
       name: "Options for Priya Sharma",

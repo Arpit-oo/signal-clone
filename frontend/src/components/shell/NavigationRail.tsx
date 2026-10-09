@@ -54,14 +54,28 @@ export default function NavigationRail({
         }
         onClick={() => onFilterChange("all")}
       >
-        <Icon name="chat" size={22} />
-        {unreadCount > 0 && <span className="rail-dot" />}
+        <Icon
+          name={
+            activeSection === "chats" && filter !== "archive"
+              ? "chat-filled"
+              : "chat"
+          }
+          size={22}
+        />
+        {unreadCount > 0 && (
+          <span
+            className="rail-unread"
+            aria-label={`${unreadCount} unread messages`}
+          >
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </span>
+        )}
       </button>
       <button
         type="button"
         className="rail-button"
-        title="Calls · Coming soon"
-        aria-label="Calls · Coming soon"
+        title="Calls"
+        aria-label="Calls"
         onClick={() => onCalls()}
       >
         <svg
@@ -85,19 +99,10 @@ export default function NavigationRail({
         aria-label="Stories"
         aria-current={activeSection === "stories" ? "page" : undefined}
       >
-        <svg
-          width="23"
-          height="23"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <rect x="8" y="3" width="12" height="18" rx="3" />
-          <path d="m6 5-2 1c-1 .3-1.5 1.3-1.2 2.4l2.8 10" />
-        </svg>
+        <Icon
+          name={activeSection === "stories" ? "stories-filled" : "stories"}
+          size={23}
+        />
       </Link>
       <button
         type="button"

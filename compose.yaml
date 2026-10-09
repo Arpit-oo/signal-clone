@@ -46,6 +46,7 @@ services:
       args:
         API_ORIGIN: http://backend:8000
         NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-ws://localhost:${BACKEND_PORT:-8000}}
+        NEXT_PUBLIC_RTC_ICE_SERVERS: ${NEXT_PUBLIC_RTC_ICE_SERVERS:-[]}
     init: true
     restart: unless-stopped
     stop_grace_period: 20s

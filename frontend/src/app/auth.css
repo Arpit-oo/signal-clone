@@ -14,6 +14,14 @@
   --surface-card: #fff;
   --fill-primary: #f1f4fa;
   --fill-accent-tint: #eef3ff;
+  --auth-accent: #3769ec;
+  --auth-link: #285bd5;
+  --auth-muted: #606d82;
+  --auth-field-label: #465570;
+  --auth-account-label: #5b6880;
+  --auth-code-label: #596c90;
+  --auth-focus-fill: rgb(55 105 236 / 0.12);
+  --auth-tab-shadow: rgb(53 75 120 / 0.08);
 
   height: auto;
   min-height: 100dvh;
@@ -26,7 +34,7 @@
 }
 
 .auth-brand {
-  color: #3769ec;
+  color: var(--auth-accent);
   text-decoration: none;
   font-weight: 600;
 }
@@ -47,7 +55,7 @@
   margin-bottom: 22px;
   border-radius: 10px;
   padding: 4px;
-  background: #f1f4fa;
+  background: var(--surface-secondary);
 }
 
 .auth-switch a {
@@ -56,7 +64,7 @@
   padding: 11px 8px;
   text-align: center;
   border-radius: 7px;
-  color: #606d82;
+  color: var(--auth-muted);
   font-weight: 600;
   font-size: 14px;
   line-height: 22px;
@@ -64,13 +72,13 @@
 }
 
 .auth-switch a[aria-current="page"] {
-  color: #26324c;
-  background: #fff;
-  box-shadow: 0 2px 6px rgb(53 75 120 / 0.08);
+  color: var(--label-primary);
+  background: var(--surface-card);
+  box-shadow: 0 2px 6px var(--auth-tab-shadow);
 }
 
 .auth-switch a:hover {
-  color: #26324c;
+  color: var(--label-primary);
 }
 
 .login-card .auth-other-account {
@@ -78,12 +86,12 @@
   font-size: 14px;
   line-height: 22px;
   text-align: center;
-  color: #66738a;
+  color: var(--label-secondary);
 }
 
 .auth-other-account a,
 .login-footer a {
-  color: #285bd5;
+  color: var(--auth-link);
   text-decoration: none;
 }
 
@@ -107,30 +115,30 @@
   justify-content: flex-start;
   flex-wrap: wrap;
   gap: 8px 16px;
-  color: #66738a;
+  color: var(--label-secondary);
   font-size: 12px;
   line-height: 18px;
 }
 
 .login-page :focus-visible {
-  outline: 2px solid #3769ec;
+  outline: 2px solid var(--auth-accent);
   outline-offset: 3px;
 }
 
 .login-eyebrow {
-  color: #66738a;
+  color: var(--label-secondary);
   font-size: 10px;
   letter-spacing: 1.7px;
 }
 
 .login-story > p {
-  color: #66738a;
+  color: var(--label-secondary);
   font-size: 14px;
   line-height: 25px;
 }
 
 .login-local {
-  color: #66738a;
+  color: var(--label-secondary);
   font-size: 12px;
   line-height: 18px;
 }
@@ -140,7 +148,7 @@
 }
 
 .login-card > p {
-  color: #66738a;
+  color: var(--label-secondary);
   font-size: 14px;
   line-height: 22px;
   margin-bottom: 22px;
@@ -148,7 +156,7 @@
 }
 
 .login-card .ui-field {
-  color: #465570;
+  color: var(--auth-field-label);
   font-size: 13px;
   line-height: 20px;
   margin: 18px 0;
@@ -156,7 +164,7 @@
 
 .login-card .ui-field input,
 .login-card .ui-field textarea {
-  border-color: #dce3ee;
+  border-color: var(--border-secondary);
   min-height: 46px;
   font-size: 16px;
   line-height: 22px;
@@ -164,21 +172,38 @@
 
 .login-card .ui-field input::placeholder,
 .login-card .ui-field textarea::placeholder {
-  color: #66738a;
+  color: var(--label-secondary);
   opacity: 1;
 }
 
 .login-card .ui-field input:focus,
 .login-card .ui-field textarea:focus {
-  border-color: #3769ec;
-  box-shadow: 0 0 0 3px rgb(55 105 236 / 0.12);
+  border-color: var(--auth-accent);
+  box-shadow: 0 0 0 3px var(--auth-focus-fill);
   outline: none;
 }
 
 .login-card .ui-field small {
-  color: #66738a;
+  color: var(--label-secondary);
   font-size: 12px;
   line-height: 18px;
+}
+
+.auth-phone-fields {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 12px;
+}
+.login-card .auth-phone-fields .ui-field {
+  margin-bottom: 8px;
+  min-width: 0;
+}
+.auth-phone-hint {
+  display: block;
+  color: var(--label-secondary);
+  font-size: 12px;
+  line-height: 18px;
+  margin-bottom: 18px;
 }
 
 .login-card .ui-button {
@@ -196,23 +221,23 @@
 }
 
 .login-card .upload-button:focus-within {
-  outline: 2px solid #3769ec;
+  outline: 2px solid var(--auth-accent);
   outline-offset: 3px;
 }
 
 .login-card .field-optional {
-  color: #66738a;
+  color: var(--label-secondary);
   font-size: 12px;
 }
 
 .login-card .ui-error {
-  color: #c43226;
+  color: var(--label-destructive);
   font-size: 13px;
   line-height: 20px;
 }
 
 .login-divider {
-  color: #66738a;
+  color: var(--label-secondary);
   font-size: 9px;
   letter-spacing: 1px;
   margin: 24px 0 18px;
@@ -222,13 +247,13 @@
   min-width: 0;
   min-height: 44px;
   font-size: 12px;
-  color: #5b6880;
+  color: var(--auth-account-label);
 }
 
 .login-card .login-disclaimer {
   margin: 24px 0 0;
   max-width: none;
-  color: #66738a;
+  color: var(--label-secondary);
   font-size: 12px;
   line-height: 18px;
 }
@@ -242,11 +267,11 @@
 .demo-code > svg {
   flex: none;
   margin-top: 2px;
-  color: #3769ec;
+  color: var(--auth-accent);
 }
 
 .demo-code span {
-  color: #596c90;
+  color: var(--auth-code-label);
   font-size: 12px;
   line-height: 18px;
 }
@@ -274,7 +299,7 @@
 .login-footer a {
   display: inline-flex;
   align-items: center;
-  min-height: 32px;
+  min-height: 44px;
 }
 
 @media (min-width: 761px) and (max-width: 1150px) {
@@ -316,8 +341,8 @@
   }
 
   .login-card .color-swatch {
-    width: 28px;
-    height: 28px;
+    width: 44px;
+    height: 44px;
   }
 
   .login-card .color-swatches {

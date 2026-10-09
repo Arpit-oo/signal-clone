@@ -51,15 +51,19 @@
 [data-theme="dark"] .rail-button.active {
   background: #454545;
 }
-.rail-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #3769ec;
+.rail-unread {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 10px;
+  background: #f34b3e;
+  color: white;
+  font-size: 10px;
+  line-height: 18px;
+  text-align: center;
   position: absolute;
-  right: 8px;
-  top: 8px;
-  border: 1px solid var(--surface-secondary);
+  right: 6px;
+  top: 3px;
 }
 .rail-spacer {
   flex: 1;
@@ -125,11 +129,12 @@
   background: #e5e5e5;
   border: 0;
   border-radius: 9px;
-  padding: 9px 11px;
-  min-height: 38px;
+  padding: 0 11px;
+  min-height: 28px;
 }
 .sidebar-tools .search-field input {
   font-size: 14px;
+  padding: 4px 0;
 }
 [data-theme="dark"] .sidebar-tools .search-field {
   background: #343434;
