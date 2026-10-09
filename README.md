@@ -4,6 +4,8 @@ A Signal-inspired messenger built for the **Scaler SDE Fullstack Assignment** by
 
 **Repository:** [Arpit-oo/signal-clone](https://github.com/Arpit-oo/signal-clone). Application code is independently implemented. Phone verification is mocked and messages are stored on the server without end-to-end encryption, as allowed by the brief.
 
+**Live demo:** [signal-clone-scalar.vercel.app](https://signal-clone-scalar.vercel.app) · **API docs:** [signal-clone-scalar-api.onrender.com/docs](https://signal-clone-scalar-api.onrender.com/docs)
+
 ## Quick start: Docker
 
 Requires Docker with Linux containers and Docker Compose v2. From the repository root:
@@ -242,10 +244,10 @@ Final local validation on **2026-10-09**:
 | --- | --- |
 | Public repository containing `frontend/` and `backend/` | [Arpit-oo/signal-clone](https://github.com/Arpit-oo/signal-clone) |
 | README: setup, stack, architecture, schema, assumptions, API overview | This README, [ARCHITECTURE.md](ARCHITECTURE.md), [ROUTES.md](ROUTES.md), service guides |
-| Hosted working demo | **Final release deployment pending by request.** The locally verified release has not been deployed. |
-| Submit GitHub and deployed application links | Repository is ready; confirm/update the hosted link after final deployment. |
+| Hosted working demo | [signal-clone-scalar.vercel.app](https://signal-clone-scalar.vercel.app) |
+| Submit GitHub and deployed application links | [Repository](https://github.com/Arpit-oo/signal-clone) · [Application](https://signal-clone-scalar.vercel.app) · [API docs](https://signal-clone-scalar-api.onrender.com/docs) |
 
-Earlier preview links: [application](https://signal-clone-ochre-one.vercel.app), [API docs](https://signal-clone-api-bnvj.onrender.com/docs). They do not verify this final source revision. The earlier free service uses ephemeral storage, so data is not guaranteed across restarts. `frontend/vercel.json` disables Git-triggered deployment, and `render.yaml` uses manual deployment; see [Vercel's controls](https://vercel.com/docs/project-configuration/git-configuration) and [Render's controls](https://render.com/docs/deploys). This source review does not deploy.
+Local development uses [localhost:3000](http://localhost:3000) for the app and [localhost:8000/docs](http://localhost:8000/docs) for the API. The hosted free Render service uses ephemeral storage, so data is not guaranteed across restarts. See [Vercel's controls](https://vercel.com/docs/project-configuration/git-configuration) and [Render's deploys](https://render.com/docs/deploys).
 
 ## Attribution and repository contents
 

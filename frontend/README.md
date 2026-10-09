@@ -12,7 +12,7 @@ Copy-Item .env.example .env.local
 npm run dev
 ```
 
-Start the FastAPI backend on port 8000, then open http://127.0.0.1:3000 for the reference homepage, `/download` for the local demo entry and official downloads, or `/chats` for messaging. Demo verification uses code `123456`; Alex's phone is `+15550000001`, Priya's is `+919876540102`.
+Start the FastAPI backend on port 8000, then open [localhost:3000](http://localhost:3000) for the reference homepage, `/download` for the local demo entry and official downloads, or `/chats` for messaging. The hosted app is [signal-clone-scalar.vercel.app](https://signal-clone-scalar.vercel.app). Demo verification uses code `123456`; Alex's phone is `+15550000001`, Priya's is `+919876540102`.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
@@ -21,7 +21,7 @@ Start the FastAPI backend on port 8000, then open http://127.0.0.1:3000 for the 
 | `NEXT_PUBLIC_RTC_ICE_SERVERS` | Google STUN fallback | JSON STUN/TURN configuration; absent/empty/invalid JSON uses Google STUN |
 | `NEXT_DIST_DIR` | `.next` | Build output; browser tests use `.next-e2e` |
 
-Browser variables are bundled into production builds. Rebuild after changing the WebSocket hostname or ICE servers. Protected media URLs include the current session token; profile/group avatars and bundled demo portraits are public. Git-triggered Vercel deployment is disabled in `vercel.json`; this does not affect local builds or Docker.
+Browser variables are bundled into production builds. Rebuild after changing the WebSocket hostname or ICE servers. Protected media URLs include the current session token; profile/group avatars and bundled demo portraits are public. Git-triggered Vercel deployment is enabled in `vercel.json`; this does not affect local builds or Docker.
 
 Use the optional [TURN relay setup](../turn/README.md) when direct media connections fail across networks. Its forced-relay browser check proves actual audio/video transport rather than signaling alone.
 
