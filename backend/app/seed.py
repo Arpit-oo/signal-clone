@@ -20,6 +20,7 @@ from sqlalchemy import func, select
 from app.core.config import get_settings
 from app.db.base import Base, utcnow
 from app.db.session import SessionLocal, engine
+from app.demo_avatars import avatar_url
 from app.models import (
     Attachment,
     Contact,
@@ -351,6 +352,7 @@ async def seed(db) -> None:
             username=username,
             about=about,
             avatar_color=color,
+            avatar_url=avatar_url(key),
             created_at=now - timedelta(days=30),
             last_seen_at=now - timedelta(minutes=5 + 7 * len(users)),
         )

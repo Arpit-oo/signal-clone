@@ -41,6 +41,8 @@ with TestClient(app) as client:
     login = client.post('/api/auth/verify', json={'phone': '+15550000001', 'code': '123456'})
     assert login.status_code == 200, login.text
     headers = {'Authorization': 'Bearer ' + login.json()['token']}
+    assert login.json()['user']['avatar_url'] == '/api/demo-avatars/alex-v1.jpg'
+    assert client.get(login.json()['user']['avatar_url']).status_code == 200
     conversations = client.get('/api/conversations', headers=headers)
     assert conversations.status_code == 200, conversations.text
     print(json.dumps({'user': login.json()['user'], 'conversations': conversations.json()}))
@@ -260,4 +262,4 @@ connection.close()
         check=False,
     )
     assert result.returncode == 0, result.stderr
-    assert json.loads(result.stdout)["revision"] == "d83a6f2c190b"
+    assert json.loads(result.stdout)["revision"] == "e94b2d8a106c"

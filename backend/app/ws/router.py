@@ -1,10 +1,13 @@
 """The WebSocket endpoint: one socket per client tab, JSON frames shaped {type, data}.
 
-Client -> server:  message.send, typing.start, typing.stop, receipt.delivered, receipt.read, ping
+Client -> server:  message.send, typing.start, typing.stop, receipt.delivered, receipt.read, ping,
+                   call.invite, call.accept, call.signal, call.connected, call.end
 Server -> client:  message.new (also the send ack, matched by client_id), message.updated,
                    message.hidden, message.expired, message.timer_started, reaction.updated,
                    receipt.updated, typing, presence, user.updated, me.updated,
-                   conversation.updated, conversation.read, conversation.removed, error, pong
+                   conversation.updated, conversation.read, conversation.removed, story.changed,
+                   call.incoming, call.ringing, call.accepted, call.dismissed, call.signal,
+                   call.ended, error, pong
 """
 
 import logging

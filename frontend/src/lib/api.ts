@@ -47,7 +47,7 @@ export function setToken(token: string | null) {
 /** Appends the auth token so <img>/<audio> elements can load protected files. */
 export function fileUrl(url: string | null | undefined): string | undefined {
   if (!url) return undefined;
-  if (url.startsWith("/api/media/")) return url;
+  if (url.startsWith("/api/media/") || url.startsWith("/api/demo-avatars/")) return url;
   const token = getToken();
   return token
     ? `${url}${url.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`

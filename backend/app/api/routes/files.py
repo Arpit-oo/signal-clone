@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Form, UploadFile
 from fastapi.responses import FileResponse
 
+from app import demo_avatars
 from app.api.deps import DB, CurrentUser, MediaUser
 from app.core.errors import not_found
 from app.schemas.message import AttachmentOut
@@ -9,6 +10,20 @@ from app.services import storage
 from app.services.messages_present import present_attachment
 
 router = APIRouter(tags=["files"])
+
+
+@router.get("/demo-avatars/{name}.jpg")
+async def demo_avatar(name: str) -> FileResponse:
+    """Public, bundled portraits for the nine fictional demo identities."""
+    key = demo_avatars.AVATAR_FILES.get(name)
+    if key is None:
+        raise not_found("Portrait")
+    path = demo_avatars.avatar_path(key)
+    return FileResponse(
+        path,
+        media_type="image/jpeg",
+        headers={"Cache-Control": "public, max-age=31536000, immutable"},
+    )
 
 
 @router.post("/attachments", response_model=AttachmentOut, status_code=201)

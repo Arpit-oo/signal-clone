@@ -19,9 +19,9 @@ import ProfileEditor from "@/components/ProfileEditor";
 import "@/app/auth.css";
 
 const demos = [
-  { name: "Alex Rivera", phone: "+15550000001", color: "A110" },
-  { name: "Priya Sharma", phone: "+919876540102", color: "A150" },
-  { name: "Marcus Chen", phone: "+15550000003", color: "A130" },
+  { name: "Alex Rivera", phone: "+15550000001", color: "A110", avatar: "/api/demo-avatars/alex-v1.jpg" },
+  { name: "Priya Sharma", phone: "+919876540102", color: "A150", avatar: "/api/demo-avatars/priya-v1.jpg" },
+  { name: "Marcus Chen", phone: "+15550000003", color: "A130", avatar: "/api/demo-avatars/marcus-v1.jpg" },
 ];
 
 export default function AuthScreen({
@@ -273,7 +273,7 @@ export default function AuthScreen({
                         setError("");
                       }}
                     >
-                      <Avatar name={demo.name} color={demo.color} size={35} />
+                      <Avatar name={demo.name} color={demo.color} url={demo.avatar} size={35} />
                       <span>{demo.name.split(" ")[0]}</span>
                     </button>
                   ))}

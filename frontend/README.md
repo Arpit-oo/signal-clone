@@ -18,9 +18,10 @@ Start the FastAPI backend on port 8000, then open http://127.0.0.1:3000 for the 
 | --- | --- | --- |
 | `API_ORIGIN` | `http://127.0.0.1:8000` | Server-side REST/media proxy |
 | `NEXT_PUBLIC_WS_URL` | Browser hostname on port 8000 | Browser WebSocket base, without `/ws` |
+| `NEXT_PUBLIC_RTC_ICE_SERVERS` | `[]` | JSON STUN/TURN configuration for calls across networks |
 | `NEXT_DIST_DIR` | `.next` | Build output; browser tests use `.next-e2e` |
 
-Browser variables are bundled into production builds. Rebuild after changing the WebSocket hostname. Protected media URLs include the current session token; profile avatars are public on the local API.
+Browser variables are bundled into production builds. Rebuild after changing the WebSocket hostname or ICE servers. Protected media URLs include the current session token; profile/group avatars and bundled demo portraits are public. Git-triggered Vercel deployment is disabled in `vercel.json`; this does not affect local builds or Docker.
 
 ## Code
 
@@ -30,6 +31,7 @@ Browser variables are bundled into production builds. Rebuild after changing the
 - `src/hooks/shell/`: route resolution, stale-search cancellation, list derivation, menu focus, and conversation actions.
 - `src/components/`: contacts/groups, settings/profile, dialogs, and icons.
 - `src/components/chat/`: chat header, timeline, composer, message actions, media, voice notes, search, and styles. `useTimelineScroll` owns history loading and scroll preservation; `useConversationActions` owns mutations and composer/dialog state.
+- `src/components/calls/`, `src/stores/call.ts`: call window and WebRTC media/signaling lifecycle, shared across Chats and Stories.
 - `src/app/styles/`: shared controls, shell layout, conversations, search, details, settings, auth, and responsive CSS. `shell.css` imports these in cascade order with responsive rules last.
 - `src/stores/`: session, persisted preferences, messages/outbox, receipts and events.
 - `src/lib/`: typed API client, server contracts, reconnecting WebSocket client.
@@ -52,4 +54,4 @@ npm run test:e2e
 
 Playwright starts isolated FastAPI/Next servers on 8001/3001 and uses project-local browsers and data. It needs installed `backend/.venv` dependencies. Reports/screenshots are written to `test-results/` on failure. Production startup is `npm run start` after `npm run build`.
 
-This local Signal-inspired project has mock authentication and server-stored messages; it does not implement Signal encryption, device linking, or live calls.
+One-to-one voice/video calls and Stories are functional. Microphone/camera access needs localhost or HTTPS and browser permission; restrictive networks need STUN/TURN configuration. Group calls and linked devices are placeholders. Authentication uses a mock OTP and messages are server-stored without Signal's end-to-end encryption. See the root README for the complete assumptions and submission status.
