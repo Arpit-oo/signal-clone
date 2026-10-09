@@ -312,7 +312,8 @@ export default function AuthScreen({
             <p className="login-disclaimer">
               Phone verification is simulated: no SMS is sent. The next screen
               shows your verification code. Messages are stored without
-              end-to-end encryption.
+              end-to-end encryption. On the free hosted demo, accounts, messages
+              and uploads may reset after a server restart.
             </p>
             <p className="auth-other-account">
               {creatingAccount ? "Already have an account? " : "New here? "}

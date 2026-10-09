@@ -68,6 +68,11 @@ All nine accounts use mock OTP **123456**. Names, portraits, messages, and US de
 The login page labels these profiles **Try a demo account**. Choose a profile,
 press Continue, and enter the mock code shown on the next screen; no SMS is sent.
 
+Login/signup and Settings > Privacy explain the free hosted demo's storage limit:
+accounts, messages and uploads may reset when the server restarts. The Calls
+picker and a call's ringing/connecting screen recommend using the same Wi-Fi;
+calls between different networks may not connect without a public TURN relay.
+
 | Name | Phone | Username |
 | --- | --- | --- |
 | Alex Rivera | +15550000001 | alex |

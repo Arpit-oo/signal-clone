@@ -5,6 +5,7 @@ import { useCall } from "@/stores/call";
 import { usePrefs } from "@/stores/prefs";
 import { sounds } from "@/lib/sounds";
 import { Avatar, Button, Icon, Modal } from "@/components/ui";
+import CallNetworkNotice from "./CallNetworkNotice";
 import "./calls.css";
 
 function CallMedia({
@@ -149,6 +150,7 @@ export function CallWindow() {
           >
             {subtitle}
           </p>
+          {call.phase !== "connected" && <CallNetworkNotice />}
           {ringtone &&
             !soundReady &&
             (call.phase === "incoming" || call.phase === "ringing") && (

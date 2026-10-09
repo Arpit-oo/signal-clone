@@ -13,6 +13,12 @@ The backend runs on Render and the Next.js frontend runs on Vercel. Deploy the b
 
 The free Render service uses ephemeral local SQLite storage and uploaded files. It reseeds demo data when the database is empty. Use a persistent disk or external database/storage for production data.
 
+This assessment demo stays on the free plans. Login/signup and Settings > Privacy
+tell users that accounts, messages and uploads may reset after a server restart.
+The Calls dialog and ringing/connecting screen advise using the same Wi-Fi;
+different-network calls may fail while no public TURN relay is configured.
+These notices describe the limitations without disabling working direct calls.
+
 ### Keep accounts, messages, and uploads across restarts
 
 Render's free service cannot attach a persistent disk. The optional

@@ -355,10 +355,11 @@ export default function Settings({ onClose }: { onClose: () => void }) {
               <div className="local-notice">
                 <Icon name="lock" size={22} />
                 <span>
-                  <strong>About this local project</strong>
+                  <strong>About this demo</strong>
                   <small>
-                    Messages are stored on your local server. This project does
-                    not implement Signal’s end-to-end encryption.
+                    Messages are stored on the server without Signal’s
+                    end-to-end encryption. On the free hosted demo, accounts,
+                    messages and uploads may reset after a server restart.
                   </small>
                 </span>
               </div>
