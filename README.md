@@ -2,6 +2,15 @@
 
 A recreation of Signal’s public homepage, paired with a working Signal-inspired messaging app built with Next.js/TypeScript, FastAPI, SQLite, and real-time WebSockets. Use Docker Compose for a containerized setup, or the local scripts to keep dependencies, browsers, data, logs, and test artifacts inside this project.
 
+## Live demo
+
+- **App:** https://signal-clone-ochre-one.vercel.app (messenger at `/chats`)
+- **API:** https://signal-clone-api-bnvj.onrender.com ([interactive docs](https://signal-clone-api-bnvj.onrender.com/docs))
+
+Sign in as Alex (`+15550000001`), Priya (`+15550000002`), or Marcus (`+15550000003`) with the code **123456**. Use a second browser profile or private window to chat between two accounts in real time.
+
+The frontend runs on Vercel and proxies REST calls to the FastAPI backend on Render's free plan (`render.yaml`). The free plan has no persistent disk and sleeps after 15 idle minutes: the first request after a pause can take about a minute, and the SQLite database and uploads reset to the seed data whenever the service restarts.
+
 ## Start with Docker
 
 Requires Docker with Linux containers and Docker Compose v2. From the repository root:

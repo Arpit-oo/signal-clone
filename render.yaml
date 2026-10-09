@@ -1,0 +1,24 @@
+# Render Blueprint for the FastAPI backend (free web service).
+# Free services have no persistent disk: SQLite and uploads reset when the service
+# sleeps or redeploys, so the demo reseeds itself on every start.
+services:
+  - type: web
+    name: signal-clone-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install uv && uv sync --locked --no-dev
+    startCommand: .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: SEED_ON_STARTUP
+        value: "true"
+      - key: AUTO_MIGRATE_ON_STARTUP
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        sync: false
