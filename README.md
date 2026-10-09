@@ -2,7 +2,7 @@
 
 A Signal-inspired messenger built for the **Scaler SDE Fullstack Assignment** by **Arpit Walia** ([awalia_be23@thapar.edu](mailto:awalia_be23@thapar.edu)). Next.js/TypeScript, FastAPI, SQLite, and authenticated WebSockets power persistent direct/group chats, contacts, receipts, typing, Stories, and one-to-one voice/video calls.
 
-**Repository:** [Arpit-oo/signal-clone](https://github.com/Arpit-oo/signal-clone). Application code is independently implemented. Phone verification is mocked and messages are stored on the server without end-to-end encryption, as allowed by the brief.
+**Repository:** [Arpit-oo/Signal-Clone-Scalar](https://github.com/Arpit-oo/Signal-Clone-Scalar). Application code is independently implemented. Phone verification is mocked and messages are stored on the server without end-to-end encryption, as allowed by the brief.
 
 **Live demo:** [signal-clone-scalar.vercel.app](https://signal-clone-scalar.vercel.app) · **API docs:** [signal-clone-scalar-api.onrender.com/docs](https://signal-clone-scalar-api.onrender.com/docs)
 
@@ -242,12 +242,12 @@ Final local validation on **2026-10-09**:
 
 | Brief deliverable | Location / status |
 | --- | --- |
-| Public repository containing `frontend/` and `backend/` | [Arpit-oo/signal-clone](https://github.com/Arpit-oo/signal-clone) |
+| Public repository containing `frontend/` and `backend/` | [Arpit-oo/Signal-Clone-Scalar](https://github.com/Arpit-oo/Signal-Clone-Scalar) |
 | README: setup, stack, architecture, schema, assumptions, API overview | This README, [ARCHITECTURE.md](ARCHITECTURE.md), [ROUTES.md](ROUTES.md), service guides |
 | Hosted working demo | [signal-clone-scalar.vercel.app](https://signal-clone-scalar.vercel.app) |
-| Submit GitHub and deployed application links | [Repository](https://github.com/Arpit-oo/signal-clone) · [Application](https://signal-clone-scalar.vercel.app) · [API docs](https://signal-clone-scalar-api.onrender.com/docs) |
+| Submit GitHub and deployed application links | [Repository](https://github.com/Arpit-oo/Signal-Clone-Scalar) · [Application](https://signal-clone-scalar.vercel.app) · [API docs](https://signal-clone-scalar-api.onrender.com/docs) |
 
-Local development uses [localhost:3000](http://localhost:3000) for the app and [localhost:8000/docs](http://localhost:8000/docs) for the API. The hosted free Render service uses ephemeral storage, so data is not guaranteed across restarts. See [Vercel's controls](https://vercel.com/docs/project-configuration/git-configuration) and [Render's deploys](https://render.com/docs/deploys).
+Local development uses [localhost:3000](http://localhost:3000) for the app and [localhost:8000/docs](http://localhost:8000/docs) for the API. Hosted deployment: [application](https://signal-clone-scalar.vercel.app), [API docs](https://signal-clone-scalar-api.onrender.com/docs). The free Render service uses ephemeral storage, so data is not guaranteed across restarts. Git-triggered deployment is enabled in both `frontend/vercel.json` and `render.yaml`; see [Vercel's controls](https://vercel.com/docs/project-configuration/git-configuration) and [Render's deploys](https://render.com/docs/deploys).
 
 ## Attribution and repository contents
 

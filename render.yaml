@@ -3,14 +3,14 @@
 # sleeps or redeploys, so the demo reseeds itself on every start.
 services:
   - type: web
-    name: signal-clone-api
+    name: signal-clone-scalar-api
     runtime: python
     plan: free
     rootDir: backend
     buildCommand: pip install uv && uv sync --locked --no-dev
     startCommand: .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1
     healthCheckPath: /health
-    autoDeployTrigger: 'off'
+    autoDeployTrigger: commit
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.8
